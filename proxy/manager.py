@@ -39,7 +39,7 @@ class Manager(cmd.Cmd, Loggable):
         parser.add_argument('-d', '--debug', action='store_true')
         parser.add_argument('-a', '--from-args', action='store_true')
         parser.add_argument('-c', '--config-file', default=CONFIG_FILE)
-        parser.add_argument('-i', '--inbox-url', default=str(INBOX_URL))
+        parser.add_argument('-i', '--inbox-url', default=INBOX_URL)
         parser.add_argument('-o', '--outbox-urls', action='append', default=[])
         parser.add_argument('-D', '--rules-default', default=RULES_DEFAULT)
         parser.add_argument('-F', '--rules-file', default=RULES_FILE)
@@ -59,7 +59,7 @@ class Manager(cmd.Cmd, Loggable):
         )
 
         try:
-            manager = cls(debug=debug, config_file=config_file)
+            manager = cls(config_file=config_file)
             if from_args:
                 manager.load_from_args(args)
             else:

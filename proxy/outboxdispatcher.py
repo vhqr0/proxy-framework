@@ -56,6 +56,8 @@ class OutboxDispatcher(Serializable, Loggable):
         if rule == Rule.Direct:
             return [self.direct_outbox]
         weights = [outbox.weight for outbox in self.forward_outboxes]
-        return random.choices(self.forward_outboxes,
-                              weights=weights,
-                              k=self.connect_retry)
+        return random.choices(
+            self.forward_outboxes,
+            weights=weights,
+            k=min(self.connect_retry, len(self.forward_outboxes)),
+        )

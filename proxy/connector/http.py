@@ -1,23 +1,21 @@
 from ..common import override
 from ..stream import Stream
-from .base import Connector
+from .base import ProxyConnector
 
 
-class HTTPConnector(Connector):
-    host: str
-
+class HTTPConnector(ProxyConnector):
     ensure_next_layer = True
 
     REQ_TEMPLATE = 'CONNECT {} HTTP/1.1\r\nHost: {}\r\n\r\n'
 
-    def __init__(self, host: str, **kwargs):
-        super().__init__(**kwargs)
-        self.host = host
-
-    @override(Connector)
+    @override(ProxyConnector)
     async def connect(self, rest: bytes = b'') -> Stream:
         assert self.next_layer is not None
-        req = self.REQ_TEMPLATE.format(self.host, self.host)
+        addr, port = self.addr
+        if addr.find(':') >= 0:
+            addr = '[' + addr + ']'
+        host = '{}:{}'.format(addr, port)
+        req = self.REQ_TEMPLATE.format(host, host)
         stream = await self.next_layer.connect(req.encode())
 
         try:

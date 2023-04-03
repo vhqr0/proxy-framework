@@ -1,9 +1,7 @@
-from yarl import URL
-
 CONFIG_FILE = 'config.json'
 
-INBOX_URL = URL('http://localhost:1080')
-OUTBOX_URL = URL('http://localhost:443')
+INBOX_URL = 'http://user:pwd@localhost:1080'
+OUTBOX_URL = 'http://user:pwd@localhost:443'
 
 RULES_DEFAULT = 'direct'
 RULES_FILE = 'rules.txt'

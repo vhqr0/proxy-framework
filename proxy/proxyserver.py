@@ -44,8 +44,8 @@ class ProxyServer(Serializable, Loggable):
     async def start_server(self):
         server = await asyncio.start_server(
             self.open_connection,
-            self.inbox.addr[0],
-            self.inbox.addr[1],
+            self.inbox.url.host,
+            self.inbox.url.port,
             reuse_address=True,
             **self.inbox.tcp_extra_kwargs,
         )
