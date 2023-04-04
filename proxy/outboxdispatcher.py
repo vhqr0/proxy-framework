@@ -1,12 +1,11 @@
 import random
-
 from typing import Any, Optional
 
+from .common import Loggable, Serializable, override
 from .defaults import CONNECT_RETRY
-from .common import override, Serializable, Loggable
-from .rulematcher import Rule, RuleMatcher
-from .outbox import Outbox, NULLOutbox, TCPOutbox
 from .fetcher import Fetcher
+from .outbox import NULLOutbox, Outbox, TCPOutbox
+from .rulematcher import Rule, RuleMatcher
 
 
 class OutboxDispatcher(Serializable['OutboxDispatcher'], Loggable):

@@ -1,22 +1,15 @@
-import timeit
 import socket
 import ssl
-
+import timeit
 from typing import Any, Optional
 
-from ..defaults import (
-    TLS_OUTBOX_CERT_FILE,
-    TLS_OUTBOX_HOST,
-    WEIGHT_INITIAL,
-    WEIGHT_MINIMAL,
-    WEIGHT_MAXIMAL,
-    WEIGHT_INCREASE_STEP,
-    WEIGHT_DECREASE_STEP,
-)
-from ..common import override, MappedSerializable, Loggable
+from ..common import Loggable, MappedSerializable, override
+from ..defaults import (TLS_OUTBOX_CERT_FILE, TLS_OUTBOX_HOST,
+                        WEIGHT_DECREASE_STEP, WEIGHT_INCREASE_STEP,
+                        WEIGHT_INITIAL, WEIGHT_MAXIMAL, WEIGHT_MINIMAL)
 from ..defaulturl import DefaultURL, OutboxDefaultURL
-from ..stream import Stream
 from ..inbox import Request
+from ..stream import Stream
 
 
 class Outbox(MappedSerializable['Outbox'], Loggable):

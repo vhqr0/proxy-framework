@@ -1,4 +1,5 @@
 lint: flake8 mypy
+format: yapf isort
 
 mypy:
 	mypy --ignore-missing-imports --check-untyped-defs -m proxy.manager
@@ -9,6 +10,9 @@ flake8:
 
 yapf:
 	yapf -i -r proxy
+
+isort:
+	isort proxy
 
 build:
 	python3 -m build

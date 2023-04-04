@@ -1,6 +1,6 @@
 from typing import Any
 
-from .common import override, MappedSerializable, Loggable
+from .common import Loggable, MappedSerializable, override
 from .outbox import Outbox
 
 

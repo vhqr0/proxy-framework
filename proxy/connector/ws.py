@@ -1,5 +1,5 @@
-import random
 import base64
+import random
 
 from ..common import override
 from ..stream import Stream, WSStream

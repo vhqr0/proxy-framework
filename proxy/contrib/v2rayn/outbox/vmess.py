@@ -3,17 +3,16 @@
 Links:
   https://www.v2fly.org/developer/protocols/vmess.html
 """
-import functools
+from functools import cached_property
 from hashlib import md5
+from typing import Any
 from uuid import UUID
 
-from typing import Any
-
 from proxy.common import override
-from proxy.stream import Stream
 from proxy.connector import TCPConnector
 from proxy.inbox import Request
 from proxy.outbox import Outbox
+from proxy.stream import Stream
 
 from ..connector import VmessConnector
 
@@ -41,7 +40,7 @@ class VmessOutbox(Outbox):
         kwargs['userid'] = obj['userid']
         return kwargs
 
-    @functools.cached_property
+    @cached_property
     def reqkey(self) -> bytes:
         return md5(self.userid.bytes + self.VMESS_MAGIC).digest()
 

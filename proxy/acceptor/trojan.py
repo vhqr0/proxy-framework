@@ -1,5 +1,5 @@
-import struct
 import socket
+import struct
 
 from ..common import override
 from ..stream import Stream

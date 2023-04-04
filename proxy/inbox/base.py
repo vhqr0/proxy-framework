@@ -1,22 +1,17 @@
-import dataclasses
-import ssl
 import asyncio
-
+import ssl
+from dataclasses import dataclass
 from typing import Any, Optional
 
-from ..defaults import (
-    INBOX_URL,
-    TLS_INBOX_CERT_FILE,
-    TLS_INBOX_KEY_FILE,
-    TLS_INBOX_KEY_PWD,
-)
-from ..common import override, MappedSerializable, Loggable
-from ..defaulturl import DefaultURL, InboxDefaultURL
 from ..acceptor import Acceptor, TCPAcceptor
+from ..common import Loggable, MappedSerializable, override
+from ..defaults import (INBOX_URL, TLS_INBOX_CERT_FILE, TLS_INBOX_KEY_FILE,
+                        TLS_INBOX_KEY_PWD)
+from ..defaulturl import DefaultURL, InboxDefaultURL
 from ..stream import Stream
 
 
-@dataclasses.dataclass
+@dataclass
 class Request:
     stream: Stream
     addr: tuple[str, int]

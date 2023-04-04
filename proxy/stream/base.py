@@ -1,13 +1,9 @@
 import asyncio
 
-from typing_extensions import Self
-from typing import Optional
-
 from ..common import Loggable, MultiLayer
 
 
 class Stream(MultiLayer['Stream'], Loggable):
-    next_layer: Optional[Self]
     to_read: bytes
 
     def __init__(self, **kwargs):

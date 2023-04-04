@@ -1,5 +1,5 @@
 from ..common import override
-from ..stream import Stream, NULLStream
+from ..stream import NULLStream, Stream
 from .base import Connector
 
 

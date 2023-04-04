@@ -1,6 +1,6 @@
-from ..common import override
 from ..acceptor import Acceptor, HTTPAcceptor
-from .base import Request, Inbox
+from ..common import override
+from .base import Inbox, Request
 
 
 class HTTPInbox(Inbox):

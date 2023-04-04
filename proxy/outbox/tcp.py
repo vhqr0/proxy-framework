@@ -1,7 +1,7 @@
 from ..common import override
-from ..stream import Stream
 from ..connector import TCPConnector
 from ..inbox import Request
+from ..stream import Stream
 from .base import Outbox
 
 

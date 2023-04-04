@@ -1,15 +1,15 @@
-import functools
+from functools import cached_property
 from hashlib import sha224
 
-from ..common import override
 from ..acceptor import Acceptor, TrojanAcceptor
+from ..common import override
 from .base import Request, TLSCtxInbox
 
 
 class TrojanInbox(TLSCtxInbox):
     scheme = 'trojan'
 
-    @functools.cached_property
+    @cached_property
     def auth(self) -> bytes:
         return sha224(self.url.pwd.encode()).hexdigest().encode()
 

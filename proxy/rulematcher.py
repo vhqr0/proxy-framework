@@ -1,12 +1,10 @@
-import os.path
 import enum
-import functools
-
-from typing_extensions import Self
+import os.path
+from functools import cache
 from typing import Any, Optional
 
+from .common import Loggable, Serializable, override
 from .defaults import RULES_DEFAULT, RULES_FILE
-from .common import override, Serializable, Loggable
 
 
 class Rule(enum.Enum):
@@ -24,14 +22,14 @@ class Rule(enum.Enum):
         raise KeyError
 
     @classmethod
-    def from_str(cls, s: str) -> Self:
+    def from_str(cls, s: str) -> 'Rule':
         s = s.lower()
         if s == 'block':
-            return cls(cls.Block)
+            return cls.Block
         if s == 'direct':
-            return cls(cls.Direct)
+            return cls.Direct
         if s == 'forward':
-            return cls(cls.Forward)
+            return cls.Forward
         raise ValueError
 
 
@@ -84,7 +82,7 @@ class RuleMatcher(Serializable['RuleMatcher'], Loggable):
                                         line, e)
         self.logger.info('load %d rules', len(self.rules))
 
-    @functools.cache
+    @cache
     def match(self, domain: str) -> Rule:
         if self.rules is None:
             return self.rules_default

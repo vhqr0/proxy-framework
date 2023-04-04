@@ -1,35 +1,23 @@
-import os.path
-from concurrent.futures import ThreadPoolExecutor
-import json
-import pprint
-import cmd
-import logging
 import argparse
-
+import json
+import logging
+import os.path
+from cmd import Cmd
+from concurrent.futures import ThreadPoolExecutor
+from pprint import pprint
 from typing import Optional
 
-from .defaults import (
-    CONFIG_FILE,
-    INBOX_URL,
-    BLOCK_OUTBOX_URL,
-    DIRECT_OUTBOX_URL,
-    TLS_INBOX_CERT_FILE,
-    TLS_INBOX_KEY_FILE,
-    TLS_INBOX_KEY_PWD,
-    TLS_OUTBOX_CERT_FILE,
-    TLS_OUTBOX_HOST,
-    RULES_DEFAULT,
-    RULES_FILE,
-    CONNECT_RETRY,
-    LOG_FORMAT,
-    LOG_DATEFMT,
-)
 from .common import Loggable
+from .defaults import (BLOCK_OUTBOX_URL, CONFIG_FILE, CONNECT_RETRY,
+                       DIRECT_OUTBOX_URL, INBOX_URL, LOG_DATEFMT, LOG_FORMAT,
+                       RULES_DEFAULT, RULES_FILE, TLS_INBOX_CERT_FILE,
+                       TLS_INBOX_KEY_FILE, TLS_INBOX_KEY_PWD,
+                       TLS_OUTBOX_CERT_FILE, TLS_OUTBOX_HOST)
 from .outbox import Outbox
 from .proxyserver import ProxyServer
 
 
-class Manager(cmd.Cmd, Loggable):
+class Manager(Cmd, Loggable):
     config_file: str
     proxy_server: ProxyServer
 
@@ -185,7 +173,7 @@ class Manager(cmd.Cmd, Loggable):
     def do_dump(self, args: str):
         args = args.strip()
         if args == '-':
-            pprint.pprint(self.proxy_server.to_dict())
+            pprint(self.proxy_server.to_dict())
         else:
             self.dump(args or self.config_file)
 

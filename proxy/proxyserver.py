@@ -1,11 +1,10 @@
 import asyncio
-
 from typing import Any, Optional
 
-from .common import override, Serializable, Loggable
-from .stream import Stream
+from .common import Loggable, Serializable, override
 from .inbox import Inbox
 from .outboxdispatcher import OutboxDispatcher
+from .stream import Stream
 
 
 class ProxyServer(Serializable['ProxyServer'], Loggable):

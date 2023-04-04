@@ -1,17 +1,17 @@
-import functools
+from functools import cached_property
 from hashlib import sha224
 
 from ..common import override
-from ..stream import Stream
 from ..connector import TCPConnector, TrojanConnector
 from ..inbox import Request
+from ..stream import Stream
 from .base import TLSCtxOutbox
 
 
 class TrojanOutbox(TLSCtxOutbox):
     scheme = 'trojan'
 
-    @functools.cached_property
+    @cached_property
     def auth(self) -> bytes:
         return sha224(self.url.pwd.encode()).hexdigest().encode()
 

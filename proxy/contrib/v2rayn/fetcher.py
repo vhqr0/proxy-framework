@@ -3,16 +3,16 @@
 Links:
   https://github.com/2dust/v2rayN/wiki/分享链接格式说明(ver-2)
 """
-import re
 import base64
 import json
+import re
 
-from yarl import URL
 import requests
+from yarl import URL
 
 from proxy.common import override
-from proxy.outbox import Outbox
 from proxy.fetcher import Fetcher
+from proxy.outbox import Outbox
 
 
 class V2rayNFetcher(Fetcher):

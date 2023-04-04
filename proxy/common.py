@@ -1,7 +1,6 @@
 import logging
-
-from typing import TypeVar, Generic, Any, Optional
 from collections.abc import Callable
+from typing import Any, Generic, Optional, TypeVar
 
 Meth = TypeVar('Meth')
 

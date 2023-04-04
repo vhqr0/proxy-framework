@@ -1,6 +1,6 @@
-import time
 import random
 import struct
+import time
 from hashlib import md5
 from hmac import HMAC
 from uuid import UUID
@@ -10,8 +10,8 @@ from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import CFB
 
 from proxy.common import override
-from proxy.stream import Stream
 from proxy.connector import ProxyConnector
+from proxy.stream import Stream
 
 from ..stream import CounteredAESGCM, VmessStream
 

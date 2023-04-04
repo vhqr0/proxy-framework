@@ -1,5 +1,5 @@
-import re
 import base64
+import re
 from hashlib import sha1
 
 from ..common import override
