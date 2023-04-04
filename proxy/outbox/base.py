@@ -5,7 +5,6 @@ import ssl
 from typing import Any, Optional
 
 from ..defaults import (
-    OUTBOX_URL,
     TLS_OUTBOX_CERT_FILE,
     TLS_OUTBOX_HOST,
     WEIGHT_INITIAL,
@@ -31,13 +30,15 @@ class Outbox(Serializable, Loggable):
     scheme_dict: dict[str, type['Outbox']] = dict()
 
     def __init__(self,
-                 url: str = OUTBOX_URL,
+                 url: Optional[str] = None,
                  name: Optional[str] = None,
                  weight: float = WEIGHT_INITIAL,
                  delay: float = -1.0,
                  tcp_extra_kwargs: Optional[dict[str, Any]] = None,
                  **kwargs):
         super().__init__(**kwargs)
+        if url is None:
+            url = self.scheme + '://'
         self.url = OutboxDefaultURL(url)
         self.name = name if name is not None else self.__class__.__name__
         self.weight = weight

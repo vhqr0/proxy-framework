@@ -11,6 +11,8 @@ from typing import Optional
 from .defaults import (
     CONFIG_FILE,
     INBOX_URL,
+    BLOCK_OUTBOX_URL,
+    DIRECT_OUTBOX_URL,
     TLS_INBOX_CERT_FILE,
     TLS_INBOX_KEY_FILE,
     TLS_INBOX_KEY_PWD,
@@ -45,7 +47,16 @@ class Manager(cmd.Cmd, Loggable):
         parser.add_argument('-a', '--from-args', action='store_true')
         parser.add_argument('-c', '--config-file', default=CONFIG_FILE)
         parser.add_argument('-i', '--inbox-url', default=INBOX_URL)
-        parser.add_argument('-o', '--outbox-urls', action='append', default=[])
+        parser.add_argument('-B',
+                            '--block-outbox-url',
+                            default=BLOCK_OUTBOX_URL)
+        parser.add_argument('-O',
+                            '--direct-outbox-url',
+                            default=DIRECT_OUTBOX_URL)
+        parser.add_argument('-o',
+                            '--forward-outbox-urls',
+                            action='append',
+                            default=[])
         parser.add_argument('-D', '--rules-default', default=RULES_DEFAULT)
         parser.add_argument('-F', '--rules-file', default=RULES_FILE)
         parser.add_argument('-r', '--connect-retry', default=CONNECT_RETRY)
@@ -94,7 +105,9 @@ class Manager(cmd.Cmd, Loggable):
 
     def load_from_args(self, args: argparse.Namespace):
         inbox_url = args.inbox_url
-        outbox_urls = args.outbox_urls
+        block_outbox_url = args.block_outbox_url
+        direct_outbox_url = args.direct_outbox_url
+        forward_outbox_urls = args.forward_outbox_urls
         tls_inbox_cert_file = args.tls_inbox_cert_file
         tls_inbox_key_file = args.tls_inbox_key_file
         tls_inbox_key_pwd = args.tls_inbox_key_pwd
@@ -104,12 +117,12 @@ class Manager(cmd.Cmd, Loggable):
         rules_file = args.rules_file
         connect_retry = args.connect_retry
 
-        outboxes = [{
+        forward_outboxes = [{
             'url': url,
             'name': url,
             'tls_cert_file': tls_outbox_cert_file,
             'tls_host': tls_outbox_host,
-        } for url in outbox_urls]
+        } for url in forward_outbox_urls]
 
         obj = {
             'inbox': {
@@ -123,7 +136,19 @@ class Manager(cmd.Cmd, Loggable):
                     'rules_default': rules_default,
                     'rules_file': rules_file,
                 },
-                'outboxes': outboxes,
+                'block_outbox': {
+                    'url': block_outbox_url,
+                    'name': 'BLOCK',
+                    'tls_cert_file': tls_outbox_cert_file,
+                    'tls_host': tls_outbox_host,
+                },
+                'direct_outbox': {
+                    'url': direct_outbox_url,
+                    'name': 'DIRECT',
+                    'tls_cert_file': tls_outbox_cert_file,
+                    'tls_host': tls_outbox_host,
+                },
+                'forward_outboxes': forward_outboxes,
                 'country_retry': connect_retry,
             }
         }

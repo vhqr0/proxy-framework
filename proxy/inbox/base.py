@@ -34,10 +34,12 @@ class Inbox(Serializable, Loggable):
     scheme_dict: dict[str, type['Inbox']] = dict()
 
     def __init__(self,
-                 url: str = INBOX_URL,
+                 url: Optional[str] = None,
                  tcp_extra_kwargs: Optional[dict[str, Any]] = None,
                  **kwargs):
         super().__init__(**kwargs)
+        if url is None:
+            url = self.scheme + '://'
         self.url = InboxDefaultURL(url)
         self.tcp_extra_kwargs = tcp_extra_kwargs \
             if tcp_extra_kwargs is not None else dict()
