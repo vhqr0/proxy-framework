@@ -25,6 +25,7 @@ class Outbox(Serializable, Loggable):
     name: str
     weight: float
     delay: float
+    fetcher: str
     tcp_extra_kwargs: dict[str, Any]
 
     scheme_dict: dict[str, type['Outbox']] = dict()
@@ -34,6 +35,7 @@ class Outbox(Serializable, Loggable):
                  name: Optional[str] = None,
                  weight: float = WEIGHT_INITIAL,
                  delay: float = -1.0,
+                 fetcher: str = '',
                  tcp_extra_kwargs: Optional[dict[str, Any]] = None,
                  **kwargs):
         super().__init__(**kwargs)
@@ -43,6 +45,7 @@ class Outbox(Serializable, Loggable):
         self.name = name if name is not None else self.__class__.__name__
         self.weight = weight
         self.delay = delay
+        self.fetcher = fetcher
         self.tcp_extra_kwargs = tcp_extra_kwargs \
             if tcp_extra_kwargs is not None else dict()
 
@@ -64,6 +67,7 @@ class Outbox(Serializable, Loggable):
             'name': self.name,
             'weight': self.weight,
             'delay': self.delay,
+            'fetcher': self.fetcher,
         }
 
     @classmethod
@@ -85,6 +89,7 @@ class Outbox(Serializable, Loggable):
             'name': obj.get('name') or cls.__name__,
             'weight': obj.get('weight') or WEIGHT_INITIAL,
             'delay': obj.get('delay') or -1.0,
+            'fetcher': obj.get('fetcher') or '',
         }
         return kwargs
 

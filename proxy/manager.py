@@ -53,10 +53,7 @@ class Manager(cmd.Cmd, Loggable):
         parser.add_argument('-O',
                             '--direct-outbox-url',
                             default=DIRECT_OUTBOX_URL)
-        parser.add_argument('-o',
-                            '--forward-outbox-urls',
-                            action='append',
-                            default=[])
+        parser.add_argument('-o', '--forward-outbox-urls', action='append')
         parser.add_argument('-D', '--rules-default', default=RULES_DEFAULT)
         parser.add_argument('-F', '--rules-file', default=RULES_FILE)
         parser.add_argument('-r', '--connect-retry', default=CONNECT_RETRY)
@@ -107,7 +104,7 @@ class Manager(cmd.Cmd, Loggable):
         inbox_url = args.inbox_url
         block_outbox_url = args.block_outbox_url
         direct_outbox_url = args.direct_outbox_url
-        forward_outbox_urls = args.forward_outbox_urls
+        forward_outbox_urls = args.forward_outbox_urls or list()
         tls_inbox_cert_file = args.tls_inbox_cert_file
         tls_inbox_key_file = args.tls_inbox_key_file
         tls_inbox_key_pwd = args.tls_inbox_key_pwd
@@ -216,4 +213,20 @@ class Manager(cmd.Cmd, Loggable):
         outboxes = self.outboxes(args)
         with ThreadPoolExecutor() as executor:
             executor.map(ping, outboxes)
+        self.dump()
+
+    def do_fetch(self, args: str):
+        fetchers = self.proxy_server.outbox_dispatcher.fetchers
+        fetcher_names = args.split()
+        if len(fetcher_names) != 0:
+            fetchers = [
+                fetcher for fetcher in fetchers
+                if fetcher.name in fetcher_names
+            ]
+        for fetcher in fetchers:
+            outboxes = fetcher.fetch()
+            for outbox in self.proxy_server.outbox_dispatcher.forward_outboxes:
+                if outbox.fetcher != fetcher.name:
+                    outboxes.append(outbox)
+            self.proxy_server.outbox_dispatcher.forward_outboxes = outboxes
         self.dump()
