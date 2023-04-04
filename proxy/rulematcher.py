@@ -64,10 +64,10 @@ class RuleMatcher(Serializable, Loggable):
         if not force and self.rules is not None:
             return
         if len(self.rules_file) == 0:
-            self.logger.warning('skip load rules file')
+            self.logger.info('skip load rules file')
             return
         if not os.path.exists(self.rules_file):
-            self.logger.warning('cannot find rules file')
+            self.logger.info('cannot find rules file')
             return
         self.rules = dict()
         with open(self.rules_file) as f:

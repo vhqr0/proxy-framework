@@ -57,7 +57,8 @@ class Outbox(Serializable, Loggable):
         return f'<{self.name} {self.weight}W>'
 
     def summary(self) -> str:
-        return f'{self.name}\t{self.weight}W\t{self.delay}D'
+        return (f'{self.fetcher}\t{self.scheme}://{self.name}\t'
+                f'{self.weight}W\t{self.delay}')
 
     @override(Serializable)
     def to_dict(self) -> dict[str, Any]:

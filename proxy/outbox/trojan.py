@@ -1,5 +1,5 @@
 import functools
-import hashlib
+from hashlib import sha224
 
 from ..common import override
 from ..stream import Stream
@@ -12,8 +12,8 @@ class TrojanOutbox(TLSCtxOutbox):
     scheme = 'trojan'
 
     @functools.cached_property
-    def pwd_hash(self) -> bytes:
-        return hashlib.sha224(self.url.pwd.encode()).hexdigest().encode()
+    def auth(self) -> bytes:
+        return sha224(self.url.pwd.encode()).hexdigest().encode()
 
     @override(TLSCtxOutbox)
     async def connect(self, req: Request) -> Stream:
@@ -22,7 +22,7 @@ class TrojanOutbox(TLSCtxOutbox):
             addr=self.url.addr,
         )
         connector = TrojanConnector(
-            pwd=self.pwd_hash,
+            auth=self.auth,
             addr=req.addr,
             next_layer=next_connector,
         )

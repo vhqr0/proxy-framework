@@ -61,21 +61,22 @@ class ProxyServer(Serializable, Loggable):
             req = await self.inbox.accept_from_tcp(reader, writer)
             outboxes = self.outbox_dispatcher.dispatch(req.addr[0])
         except Exception as e:
-            self.logger.warning('except while accepting: %.60s', e)
+            self.logger.debug('except while accepting: %.60s', e)
             return
 
         for retry, outbox in enumerate(outboxes):
             try:
-                self.logger.info('connect to %s via %s', req, outbox)
-                stream = await outbox.connect(req)
+                self.logger.info('connect to %s via %s retry %d', req, outbox,
+                                 retry)
+                stream = await outbox.connect(req=req)
                 break
             except Exception as e:
                 outbox.weight_decrease()
-                self.logger.warning(
+                self.logger.debug(
                     'except while connecting to %s via %s retry %d: %.60s',
                     req, outbox, retry, e)
         else:
-            self.logger.warning('except while reconnecting to %s', req)
+            self.logger.debug('except while reconnecting to %s', req)
             try:
                 req.stream.close()
                 await req.stream.wait_closed()
@@ -88,8 +89,8 @@ class ProxyServer(Serializable, Loggable):
             outbox.weight_increase()
         except Exception as e:
             outbox.weight_decrease()
-            self.logger.warning('except while proxing to %s via %s: %.60s',
-                                req, outbox, e)
+            self.logger.debug('except while proxing to %s via %s: %.60s', req,
+                              outbox, e)
 
     @classmethod
     async def stream_proxy(cls, s1: Stream, s2: Stream):

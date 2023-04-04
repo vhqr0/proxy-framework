@@ -49,8 +49,7 @@ class OutboxDispatcher(Serializable, Loggable):
             self.direct_outbox.to_dict(),
             'forward_outboxes':
             [outbox.to_dict() for outbox in self.forward_outboxes],
-            'fetchers':
-            [fetcher.to_dict() for fetcher in self.fetchers],
+            'fetchers': [fetcher.to_dict() for fetcher in self.fetchers],
             'connect_retry':
             self.connect_retry,
         }

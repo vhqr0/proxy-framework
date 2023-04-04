@@ -31,10 +31,11 @@ class Loggable:
 
     def __init__(self, **kwargs):
         for k in kwargs:
-            self.logger.warning('unused kwarg: %s', k)
+            self.logger.debug('unused kwarg: %s', k)
 
 
 class Serializable:
+
     def to_dict(self) -> dict[str, Any]:
         raise NotImplementedError
 

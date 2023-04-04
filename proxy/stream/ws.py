@@ -76,6 +76,8 @@ class WSStream(Stream):
         if len(buf) != 0:
             return buf
         buf = await self.next_layer.read()
+        if len(buf) < 2:
+            buf + await self.next_layer.read()
         flags, blen = struct.unpack_from('!BB', buffer=buf, offset=0)
         buf = buf[2:]
         m, blen = blen & 0x80, blen & 0x7f
@@ -88,7 +90,10 @@ class WSStream(Stream):
         if m != 0:
             mask, buf = buf[:4], buf[4:]
         while len(buf) < blen:
-            buf += await self.next_layer.read()
+            next_buf = await self.next_layer.read()
+            if len(next_buf) == 0:
+                raise RuntimeError('invalid ws frame length')
+            buf += next_buf
         if len(buf) > blen:
             self.next_layer.push(buf[blen:])
             buf = buf[:blen]
@@ -104,4 +109,4 @@ class WSStream(Stream):
             await self.drain()
         if op in (0, 9, 0xa):  # continue/ping/pong
             return await self.read()
-        raise RuntimeError('invalid server data')
+        raise RuntimeError('invalid ws frame type')

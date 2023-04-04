@@ -1,6 +1,6 @@
 import re
 import base64
-import hashlib
+from hashlib import sha1
 
 from ..common import override
 from ..stream import Stream, WSStream
@@ -50,7 +50,7 @@ class WSAcceptor(Acceptor):
             path, ver, host, key = req[1], req[2], _host[1], _key[1]
             if path != self.path or host != self.host:
                 raise RuntimeError('invalid http entry')
-            key_hash = hashlib.sha1((key + self.WS_MAGIC).encode()).digest()
+            key_hash = sha1((key + self.WS_MAGIC).encode()).digest()
             accept = base64.b64encode(key_hash).decode()
             res = self.WS_RES_TEMPLATE.format(ver, accept)
             next_stream.write(res.encode())

@@ -6,14 +6,14 @@ from .base import ProxyConnector
 
 
 class TrojanConnector(ProxyConnector):
-    pwd: bytes
+    auth: bytes
 
     ensure_next_layer = True
 
-    def __init__(self, pwd: bytes, **kwargs):
+    def __init__(self, auth: bytes, **kwargs):
         super().__init__(**kwargs)
-        assert len(pwd) == 56
-        self.pwd = pwd
+        assert len(auth) == 56
+        self.auth = auth
 
     @override(ProxyConnector)
     async def connect(self, rest: bytes = b'') -> Stream:
@@ -22,5 +22,5 @@ class TrojanConnector(ProxyConnector):
         addr_bytes = addr.encode()
         alen = len(addr_bytes)
         req = struct.pack(f'!BBB{alen}sH', 1, 3, alen, addr_bytes, port)
-        req = self.pwd + b'\r\n' + req + b'\r\n' + rest
-        return await self.next_layer.connect(req)
+        req = self.auth + b'\r\n' + req + b'\r\n' + rest
+        return await self.next_layer.connect(rest=req)

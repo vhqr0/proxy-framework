@@ -2,6 +2,7 @@ __pycache__
 
 /domain-list-community
 
+/configs
 /config.json
 /cert.pem
 /key.pem

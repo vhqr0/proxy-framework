@@ -187,7 +187,7 @@ class Manager(cmd.Cmd, Loggable):
         if args == '-':
             pprint.pprint(self.proxy_server.to_dict())
         else:
-            self.dump(args)
+            self.dump(args or self.config_file)
 
     def do_run(self, args: str):
         outboxes = self.outboxes(args)
@@ -196,8 +196,8 @@ class Manager(cmd.Cmd, Loggable):
 
     def do_ls(self, args: str):
         outboxes = self.outboxes(args)
-        for outbox in outboxes:
-            print(outbox.summary())
+        for idx, outbox in enumerate(outboxes):
+            print(f'{idx}\t{outbox.summary()}')
 
     def do_rm(self, args: str):
         outboxes = self.outboxes(args, inverse=True)

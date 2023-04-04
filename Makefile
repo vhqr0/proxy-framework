@@ -2,6 +2,7 @@ lint: flake8 mypy
 
 mypy:
 	mypy --ignore-missing-imports --check-untyped-defs -m proxy.manager
+	mypy --ignore-missing-imports --check-untyped-defs -m proxy.contrib.v2rayn
 
 flake8:
 	flake8 proxy

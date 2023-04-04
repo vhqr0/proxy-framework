@@ -29,7 +29,7 @@ class WSConnector(Connector):
         assert self.next_layer is not None
         key = base64.b64decode(random.randbytes(16)).decode()
         req = self.REQ_TEMPLATE.format(self.path, self.host, key)
-        next_stream = await self.next_layer.connect(req.encode())
+        next_stream = await self.next_layer.connect(rest=req.encode())
 
         try:
             buf = await next_stream.read()

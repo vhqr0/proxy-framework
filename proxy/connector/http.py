@@ -16,7 +16,7 @@ class HTTPConnector(ProxyConnector):
             addr = '[' + addr + ']'
         host = '{}:{}'.format(addr, port)
         req = self.REQ_TEMPLATE.format(host, host)
-        stream = await self.next_layer.connect(req.encode())
+        stream = await self.next_layer.connect(rest=req.encode())
 
         try:
             buf = await stream.read()
