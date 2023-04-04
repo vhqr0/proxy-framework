@@ -10,7 +10,7 @@ from ..defaults import (
     TLS_INBOX_KEY_FILE,
     TLS_INBOX_KEY_PWD,
 )
-from ..common import override, Serializable, Loggable
+from ..common import override, MappedSerializable, Loggable
 from ..defaulturl import DefaultURL, InboxDefaultURL
 from ..acceptor import Acceptor, TCPAcceptor
 from ..stream import Stream
@@ -26,12 +26,11 @@ class Request:
         return f'<{self.addr[0]} {self.addr[1]} {len(self.rest)}B>'
 
 
-class Inbox(Serializable, Loggable):
-    scheme: str
+class Inbox(MappedSerializable['Inbox'], Loggable):
     url: DefaultURL
     tcp_extra_kwargs: dict[str, Any]
 
-    scheme_dict: dict[str, type['Inbox']] = dict()
+    scheme_map = dict()
 
     def __init__(self,
                  url: Optional[str] = None,
@@ -44,29 +43,25 @@ class Inbox(Serializable, Loggable):
         self.tcp_extra_kwargs = tcp_extra_kwargs \
             if tcp_extra_kwargs is not None else dict()
 
-    def __init_subclass__(cls, **kwargs):
-        if hasattr(cls, 'scheme'):
-            cls.scheme_dict[cls.scheme] = cls
-
-    @override(Serializable)
+    @override(MappedSerializable)
     def to_dict(self) -> dict[str, Any]:
-        return {'scheme': self.scheme, 'url': str(self.url)}
+        obj = super().to_dict()
+        obj['url'] = str(self.url)
+        return obj
 
     @classmethod
-    @override(Serializable)
-    def from_dict(cls, obj: dict[str, Any]) -> 'Inbox':
+    @override(MappedSerializable)
+    def scheme_from_dict(cls, obj: dict[str, Any]) -> str:
         if 'scheme' in obj:
-            scheme = obj['scheme']
-        else:
-            url = InboxDefaultURL(obj.get('url') or '')
-            scheme = url.scheme
-        inbox_cls = cls.scheme_dict[scheme]
-        kwargs = inbox_cls.kwargs_from_dict(obj)
-        return inbox_cls(**kwargs)
+            return super().scheme_from_dict(obj)
+        url = InboxDefaultURL(obj.get('url') or '')
+        return url.scheme
 
     @classmethod
+    @override(MappedSerializable)
     def kwargs_from_dict(cls, obj: dict[str, Any]) -> dict[str, Any]:
-        kwargs = {'url': obj.get('url') or INBOX_URL}
+        kwargs = super().kwargs_from_dict(obj)
+        kwargs['url'] = obj.get('url') or INBOX_URL
         return kwargs
 
     async def accept_from_tcp(self, reader: asyncio.StreamReader,

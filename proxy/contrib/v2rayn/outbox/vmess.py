@@ -1,3 +1,8 @@
+"""Vmess client side protocol implementation.
+
+Links:
+  https://www.v2fly.org/developer/protocols/vmess.html
+"""
 import functools
 from hashlib import md5
 from uuid import UUID

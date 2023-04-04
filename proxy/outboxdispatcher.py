@@ -1,6 +1,5 @@
 import random
 
-from typing_extensions import Self
 from typing import Any, Optional
 
 from .defaults import CONNECT_RETRY
@@ -10,7 +9,7 @@ from .outbox import Outbox, NULLOutbox, TCPOutbox
 from .fetcher import Fetcher
 
 
-class OutboxDispatcher(Serializable, Loggable):
+class OutboxDispatcher(Serializable['OutboxDispatcher'], Loggable):
     rule_matcher: RuleMatcher
     block_outbox: Outbox
     direct_outbox: Outbox
@@ -56,7 +55,7 @@ class OutboxDispatcher(Serializable, Loggable):
 
     @classmethod
     @override(Serializable)
-    def from_dict(cls, obj: dict[str, Any]) -> Self:
+    def from_dict(cls, obj: dict[str, Any]) -> 'OutboxDispatcher':
         rule_matcher = RuleMatcher.from_dict(obj.get('rule_matcher') or dict())
         outbox_obj = obj.get('block_outbox')
         block_outbox = Outbox.from_dict(outbox_obj) \

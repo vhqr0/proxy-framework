@@ -1,3 +1,5 @@
+import asyncio
+
 from typing_extensions import Self
 from typing import Optional
 
@@ -48,3 +50,15 @@ class Stream(MultiLayer['Stream'], Loggable):
         if len(self.to_read) == 0:
             self.to_read = await self.read()
         return self.to_read
+
+    async def readexactly(self, n: int) -> bytes:
+        buf = b''
+        while len(buf) < n:
+            next_buf = await self.read()
+            if len(next_buf) == 0:
+                raise asyncio.IncompleteReadError(partial=buf, expected=n)
+            buf += next_buf
+        if len(buf) > n:
+            self.push(buf[n:])
+            buf = buf[:n]
+        return buf

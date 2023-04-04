@@ -13,14 +13,13 @@ from ..defaults import (
     WEIGHT_INCREASE_STEP,
     WEIGHT_DECREASE_STEP,
 )
-from ..common import override, Serializable, Loggable
+from ..common import override, MappedSerializable, Loggable
 from ..defaulturl import DefaultURL, OutboxDefaultURL
 from ..stream import Stream
 from ..inbox import Request
 
 
-class Outbox(Serializable, Loggable):
-    scheme: str
+class Outbox(MappedSerializable['Outbox'], Loggable):
     url: DefaultURL
     name: str
     weight: float
@@ -28,7 +27,7 @@ class Outbox(Serializable, Loggable):
     fetcher: str
     tcp_extra_kwargs: dict[str, Any]
 
-    scheme_dict: dict[str, type['Outbox']] = dict()
+    scheme_map = dict()
 
     def __init__(self,
                  url: Optional[str] = None,
@@ -49,10 +48,6 @@ class Outbox(Serializable, Loggable):
         self.tcp_extra_kwargs = tcp_extra_kwargs \
             if tcp_extra_kwargs is not None else dict()
 
-    def __init_subclass__(cls, **kwargs):
-        if hasattr(cls, 'scheme'):
-            cls.scheme_dict[cls.scheme] = cls
-
     def __str__(self) -> str:
         return f'<{self.name} {self.weight}W>'
 
@@ -60,38 +55,33 @@ class Outbox(Serializable, Loggable):
         return (f'{self.fetcher}\t{self.scheme}://{self.name}\t'
                 f'{self.weight}W\t{self.delay}')
 
-    @override(Serializable)
+    @override(MappedSerializable)
     def to_dict(self) -> dict[str, Any]:
-        return {
-            'scheme': self.scheme,
-            'url': str(self.url),
-            'name': self.name,
-            'weight': self.weight,
-            'delay': self.delay,
-            'fetcher': self.fetcher,
-        }
+        obj = super().to_dict()
+        obj['url'] = str(self.url)
+        obj['name'] = self.name
+        obj['weight'] = self.weight
+        obj['delay'] = self.delay
+        obj['fetcher'] = self.fetcher
+        return obj
 
     @classmethod
-    @override(Serializable)
-    def from_dict(cls, obj: dict[str, Any]) -> 'Outbox':
+    @override(MappedSerializable)
+    def scheme_from_dict(cls, obj: dict[str, Any]) -> str:
         if 'scheme' in obj:
-            scheme = obj['scheme']
-        else:
-            url = OutboxDefaultURL(obj.get('url') or '')
-            scheme = url.scheme
-        outbox_cls = cls.scheme_dict[scheme]
-        kwargs = outbox_cls.kwargs_from_dict(obj)
-        return outbox_cls(**kwargs)
+            return super().scheme_from_dict(obj)
+        url = OutboxDefaultURL(obj.get('url') or '')
+        return url.scheme
 
     @classmethod
+    @override(MappedSerializable)
     def kwargs_from_dict(cls, obj: dict[str, Any]) -> dict[str, Any]:
-        kwargs = {
-            'url': obj.get('url') or '',
-            'name': obj.get('name') or cls.__name__,
-            'weight': obj.get('weight') or WEIGHT_INITIAL,
-            'delay': obj.get('delay') or -1.0,
-            'fetcher': obj.get('fetcher') or '',
-        }
+        kwargs = super().kwargs_from_dict(obj)
+        kwargs['url'] = obj.get('url') or ''
+        kwargs['name'] = obj.get('name') or cls.__name__
+        kwargs['weight'] = obj.get('weight') or WEIGHT_INITIAL
+        kwargs['delay'] = obj.get('delay') or -1.0
+        kwargs['fetcher'] = obj.get('fetcher') or ''
         return kwargs
 
     def weight_increase(self):

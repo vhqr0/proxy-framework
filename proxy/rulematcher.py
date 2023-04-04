@@ -35,7 +35,7 @@ class Rule(enum.Enum):
         raise ValueError
 
 
-class RuleMatcher(Serializable, Loggable):
+class RuleMatcher(Serializable['RuleMatcher'], Loggable):
     rules_default: Rule
     rules_file: str
     rules: Optional[dict[str, Rule]]
@@ -56,7 +56,7 @@ class RuleMatcher(Serializable, Loggable):
 
     @classmethod
     @override(Serializable)
-    def from_dict(cls, obj: dict[str, Any]) -> Self:
+    def from_dict(cls, obj: dict[str, Any]) -> 'RuleMatcher':
         return cls(rules_default=obj.get('rules_default') or RULES_DEFAULT,
                    rules_file=obj.get('rules_file') or RULES_FILE)
 

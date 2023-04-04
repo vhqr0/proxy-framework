@@ -1,6 +1,5 @@
 import asyncio
 
-from typing_extensions import Self
 from typing import Any, Optional
 
 from .common import override, Serializable, Loggable
@@ -9,7 +8,7 @@ from .inbox import Inbox
 from .outboxdispatcher import OutboxDispatcher
 
 
-class ProxyServer(Serializable, Loggable):
+class ProxyServer(Serializable['ProxyServer'], Loggable):
     inbox: Inbox
     outbox_dispatcher: OutboxDispatcher
 
@@ -28,7 +27,7 @@ class ProxyServer(Serializable, Loggable):
 
     @classmethod
     @override(Serializable)
-    def from_dict(cls, obj: dict[str, Any]) -> Self:
+    def from_dict(cls, obj: dict[str, Any]) -> 'ProxyServer':
         inbox = Inbox.from_dict(obj.get('inbox') or dict())
         outbox_dispatcher = OutboxDispatcher.from_dict(
             obj.get('outbox_dispatcher') or dict())

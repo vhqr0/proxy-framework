@@ -1,42 +1,36 @@
 from typing import Any
 
-from .common import override, Serializable, Loggable
+from .common import override, MappedSerializable, Loggable
 from .outbox import Outbox
 
 
-class Fetcher(Serializable, Loggable):
-    scheme: str
+class Fetcher(MappedSerializable['Fetcher'], Loggable):
     url: str
     name: str
 
-    scheme_dict: dict[str, type['Fetcher']] = dict()
+    scheme_map = dict()
 
     def __init__(self, url: str, name: str, **kwargs):
         super().__init__(**kwargs)
         self.url = url
         self.name = name
 
-    def __init_subclass__(cls, **kwargs):
-        if hasattr(cls, 'scheme'):
-            cls.scheme_dict[cls.scheme] = cls
-
     def __str__(self) -> str:
         return f'<{self.scheme}://{self.name}>'
 
-    @override(Serializable)
+    @override(MappedSerializable)
     def to_dict(self) -> dict[str, Any]:
-        return {'scheme': self.scheme, 'url': self.url, 'name': self.name}
+        obj = super().to_dict()
+        obj['url'] = self.url
+        obj['name'] = self.name
+        return obj
 
     @classmethod
-    @override(Serializable)
-    def from_dict(cls, obj: dict[str, Any]) -> 'Fetcher':
-        fetcher_cls = cls.scheme_dict[obj['scheme']]
-        kwargs = fetcher_cls.kwargs_from_dict(obj)
-        return fetcher_cls(**kwargs)
-
-    @classmethod
+    @override(MappedSerializable)
     def kwargs_from_dict(cls, obj: dict[str, Any]) -> dict[str, Any]:
-        kwargs = {'url': obj['url'], 'name': obj['name']}
+        kwargs = super().kwargs_from_dict(obj)
+        kwargs['url'] = obj['url']
+        kwargs['name'] = obj['name']
         return kwargs
 
     def fetch(self) -> list[Outbox]:

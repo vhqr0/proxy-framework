@@ -75,28 +75,18 @@ class WSStream(Stream):
         buf = self.pop()
         if len(buf) != 0:
             return buf
-        buf = await self.next_layer.read()
-        if len(buf) < 2:
-            buf + await self.next_layer.read()
-        flags, blen = struct.unpack_from('!BB', buffer=buf, offset=0)
-        buf = buf[2:]
+        buf = await self.next_layer.readexactly(2)
+        flags, blen = struct.unpack('!BB', buf)
         m, blen = blen & 0x80, blen & 0x7f
         if blen == 126:
-            blen = struct.unpack_from('!H', buffer=buf, offset=0)
-            buf = buf[2:]
+            buf = await self.next_layer.readexactly(2)
+            blen, = struct.unpack('!H', buf)
         elif blen == 127:
-            blen = struct.unpack_from('!Q', buffer=buf, offset=0)
-            buf = buf[8:]
+            buf = await self.next_layer.readexactly(8)
+            blen, = struct.unpack('!Q', buf)
         if m != 0:
-            mask, buf = buf[:4], buf[4:]
-        while len(buf) < blen:
-            next_buf = await self.next_layer.read()
-            if len(next_buf) == 0:
-                raise RuntimeError('invalid ws frame length')
-            buf += next_buf
-        if len(buf) > blen:
-            self.next_layer.push(buf[blen:])
-            buf = buf[:blen]
+            mask = await self.next_layer.readexactly(4)
+        buf = await self.next_layer.readexactly(blen)
         if m != 0:
             buf = bytes(c ^ mask[i % 4] for i, c in enumerate(buf))
         op = flags & 0xf

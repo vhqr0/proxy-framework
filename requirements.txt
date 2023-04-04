@@ -1,2 +1,4 @@
 typing_extensions
 yarl
+cryptography
+requests

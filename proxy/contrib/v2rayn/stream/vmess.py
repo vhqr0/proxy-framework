@@ -69,18 +69,8 @@ class VmessStream(Stream):
         buf = self.pop()
         if len(buf) != 0:
             return buf
-        buf = await self.next_layer.read()
-        if len(buf) < 2:
-            buf += await self.next_layer.read()
-        blen, = struct.unpack_from('!H', buffer=buf, offset=0)
-        buf = buf[2:]
-        while len(buf) < blen:
-            next_buf = await self.next_layer.read()
-            if len(next_buf) == 0:
-                raise RuntimeError('invalid vmess frame length')
-            buf += next_buf
-        if len(buf) > blen:
-            self.next_layer.push(buf[blen:])
-            buf = buf[:blen]
+        buf = await self.next_layer.readexactly(2)
+        blen, = struct.unpack('!H', buf)
+        buf = await self.next_layer.readexactly(blen)
         buf = self.read_decryptor.decrypt(buf)
         return buf
