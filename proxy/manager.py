@@ -11,6 +11,11 @@ from typing import Optional
 from .defaults import (
     CONFIG_FILE,
     INBOX_URL,
+    TLS_INBOX_CERT_FILE,
+    TLS_INBOX_KEY_FILE,
+    TLS_INBOX_KEY_PWD,
+    TLS_OUTBOX_CERT_FILE,
+    TLS_OUTBOX_HOST,
     RULES_DEFAULT,
     RULES_FILE,
     CONNECT_RETRY,
@@ -44,6 +49,19 @@ class Manager(cmd.Cmd, Loggable):
         parser.add_argument('-D', '--rules-default', default=RULES_DEFAULT)
         parser.add_argument('-F', '--rules-file', default=RULES_FILE)
         parser.add_argument('-r', '--connect-retry', default=CONNECT_RETRY)
+        parser.add_argument('-C',
+                            '--tls-inbox-cert-file',
+                            default=TLS_INBOX_CERT_FILE)
+        parser.add_argument('-K',
+                            '--tls-inbox-key-file',
+                            default=TLS_INBOX_KEY_FILE)
+        parser.add_argument('-P',
+                            '--tls-inbox-key-pwd',
+                            default=TLS_INBOX_KEY_PWD)
+        parser.add_argument('-R',
+                            '--tls-outbox-cert-file',
+                            default=TLS_OUTBOX_CERT_FILE)
+        parser.add_argument('-H', '--tls-outbox-host', default=TLS_OUTBOX_HOST)
         parser.add_argument('command', nargs=argparse.REMAINDER)
         args = parser.parse_args()
 
@@ -58,33 +76,47 @@ class Manager(cmd.Cmd, Loggable):
             datefmt=LOG_DATEFMT,
         )
 
+        manager = cls(config_file=config_file)
+        if from_args:
+            manager.load_from_args(args)
+        else:
+            manager.load()
+
         try:
-            manager = cls(config_file=config_file)
-            if from_args:
-                manager.load_from_args(args)
-            else:
-                manager.load()
             if command is None or len(command) == 0:
                 manager.cmdloop()
             else:
                 manager.onecmd(' '.join(command))
         except Exception as e:
             cls.logger.error('error while eval: %s', e)
-            raise
         except KeyboardInterrupt:
-            pass
+            cls.logger.info('keyboard quit')
 
     def load_from_args(self, args: argparse.Namespace):
         inbox_url = args.inbox_url
         outbox_urls = args.outbox_urls
+        tls_inbox_cert_file = args.tls_inbox_cert_file
+        tls_inbox_key_file = args.tls_inbox_key_file
+        tls_inbox_key_pwd = args.tls_inbox_key_pwd
+        tls_outbox_cert_file = args.tls_outbox_cert_file
+        tls_outbox_host = args.tls_outbox_host
         rules_default = args.rules_default
         rules_file = args.rules_file
         connect_retry = args.connect_retry
 
-        outboxes = [{'url': url, 'name': url} for url in outbox_urls]
+        outboxes = [{
+            'url': url,
+            'name': url,
+            'tls_cert_file': tls_outbox_cert_file,
+            'tls_host': tls_outbox_host,
+        } for url in outbox_urls]
+
         obj = {
             'inbox': {
                 'url': inbox_url,
+                'tls_cert_file': tls_inbox_cert_file,
+                'tls_key_file': tls_inbox_key_file,
+                'tls_key_pwd': tls_inbox_key_pwd,
             },
             'outbox_dispatcher': {
                 'rule_matcher': {

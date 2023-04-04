@@ -10,5 +10,8 @@ class TCPOutbox(Outbox):
 
     @override(Outbox)
     async def connect(self, req: Request) -> Stream:
-        connector = TCPConnector(addr=req.addr)
+        connector = TCPConnector(
+            tcp_extra_kwargs=self.tcp_extra_kwargs,
+            addr=req.addr,
+        )
         return await connector.connect(rest=req.rest)

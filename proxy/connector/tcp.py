@@ -1,6 +1,6 @@
 import asyncio
 
-from typing import Any
+from typing import Any, Optional
 
 from ..common import override
 from ..stream import Stream, TCPStream
@@ -13,11 +13,12 @@ class TCPConnector(Connector):
 
     def __init__(self,
                  addr: tuple[str, int],
-                 tcp_extra_kwargs: dict[str, Any] = dict(),
+                 tcp_extra_kwargs: Optional[dict[str, Any]] = None,
                  **kwargs):
         super().__init__(**kwargs)
         self.addr = addr
-        self.tcp_extra_kwargs = tcp_extra_kwargs
+        self.tcp_extra_kwargs = tcp_extra_kwargs \
+            if tcp_extra_kwargs is not None else dict()
 
     @override(Connector)
     async def connect(self, rest: bytes = b'') -> Stream:

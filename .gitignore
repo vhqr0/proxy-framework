@@ -3,6 +3,8 @@ __pycache__
 /domain-list-community
 
 /config.json
+/cert.pem
+/key.pem
 /rules.txt
 
 /classes.png

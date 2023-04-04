@@ -40,6 +40,7 @@ class ProxyServer(Serializable, Loggable):
             asyncio.run(self.start_server())
         except Exception as e:
             self.logger.error('error while serving: %s', e)
+            raise
 
     async def start_server(self):
         server = await asyncio.start_server(
@@ -74,7 +75,7 @@ class ProxyServer(Serializable, Loggable):
                     'except while connecting to %s via %s retry %d: %.60s',
                     req, outbox, retry, e)
         else:
-            self.logger.warning('except while connecting to %s', req)
+            self.logger.warning('except while reconnecting to %s', req)
             try:
                 req.stream.close()
                 await req.stream.wait_closed()

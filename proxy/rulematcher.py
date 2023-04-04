@@ -5,10 +5,7 @@ import functools
 from typing_extensions import Self
 from typing import Any, Optional
 
-from .defaults import (
-    RULES_DEFAULT,
-    RULES_FILE,
-)
+from .defaults import RULES_DEFAULT, RULES_FILE
 from .common import override, Serializable, Loggable
 
 
@@ -66,8 +63,11 @@ class RuleMatcher(Serializable, Loggable):
     def load_rules(self, force: bool = False):
         if not force and self.rules is not None:
             return
+        if len(self.rules_file) == 0:
+            self.logger.warning('skip load rules file')
+            return
         if not os.path.exists(self.rules_file):
-            self.logger.warning('rules file not exists')
+            self.logger.warning('cannot find rules file')
             return
         self.rules = dict()
         with open(self.rules_file) as f:
@@ -82,6 +82,7 @@ class RuleMatcher(Serializable, Loggable):
                 except Exception as e:
                     self.logger.warning('except while loading rule %s: %s',
                                         line, e)
+        self.logger.info('load %d rules', len(self.rules))
 
     @functools.cache
     def match(self, domain: str) -> Rule:

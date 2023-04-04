@@ -1,10 +1,13 @@
 import timeit
 import socket
+import ssl
 
 from typing import Any, Optional
 
 from ..defaults import (
     OUTBOX_URL,
+    TLS_OUTBOX_CERT_FILE,
+    TLS_OUTBOX_HOST,
     WEIGHT_INITIAL,
     WEIGHT_MINIMAL,
     WEIGHT_MAXIMAL,
@@ -23,6 +26,7 @@ class Outbox(Serializable, Loggable):
     name: str
     weight: float
     delay: float
+    tcp_extra_kwargs: dict[str, Any]
 
     scheme_dict: dict[str, type['Outbox']] = dict()
 
@@ -31,12 +35,15 @@ class Outbox(Serializable, Loggable):
                  name: Optional[str] = None,
                  weight: float = WEIGHT_INITIAL,
                  delay: float = -1.0,
+                 tcp_extra_kwargs: Optional[dict[str, Any]] = None,
                  **kwargs):
         super().__init__(**kwargs)
         self.url = OutboxDefaultURL(url)
         self.name = name if name is not None else self.__class__.__name__
         self.weight = weight
         self.delay = delay
+        self.tcp_extra_kwargs = tcp_extra_kwargs \
+            if tcp_extra_kwargs is not None else dict()
 
     def __init_subclass__(cls, **kwargs):
         if hasattr(cls, 'scheme'):
@@ -101,3 +108,37 @@ class Outbox(Serializable, Loggable):
 
     async def connect(self, req: Request) -> Stream:
         raise NotImplementedError
+
+
+class TLSCtxOutbox(Outbox):
+    tls_cert_file: str
+    tls_host: str
+    tls_ctx: ssl.SSLContext
+
+    def __init__(self,
+                 tls_cert_file: str = TLS_OUTBOX_CERT_FILE,
+                 tls_host: str = TLS_OUTBOX_HOST,
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.tls_cert_file = tls_cert_file
+        self.tls_host = tls_host
+        self.tls_ctx = ssl.create_default_context(
+            cafile=self.tls_cert_file or None)
+        self.tcp_extra_kwargs['ssl'] = self.tls_ctx
+        self.tcp_extra_kwargs['server_hostname'] = self.tls_host
+
+    @override(Outbox)
+    def to_dict(self) -> dict[str, Any]:
+        obj = super().to_dict()
+        obj['tls_cert_file'] = self.tls_cert_file
+        obj['tls_host'] = self.tls_host
+        return obj
+
+    @classmethod
+    @override(Outbox)
+    def kwargs_from_dict(cls, obj: dict[str, Any]) -> dict[str, Any]:
+        kwargs = super().kwargs_from_dict(obj)
+        kwargs['tls_cert_file'] = obj.get('tls_cert_file') or \
+            TLS_OUTBOX_CERT_FILE
+        kwargs['tls_host'] = obj.get('tls_host') or TLS_OUTBOX_HOST
+        return kwargs
