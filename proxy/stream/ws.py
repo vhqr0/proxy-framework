@@ -35,45 +35,12 @@ class WSStream(Stream):
         self.next_layer.write(buf)
 
     @override(Stream)
-    def close(self):
-        exc: Optional[Exception] = None
-        try:
-            self.write_frame(0x88, b'')
-        except Exception as e:
-            exc = e
-        try:
-            super().close()
-        except Exception as e:
-            if exc is None:
-                exc = e
-        if exc is not None:
-            raise exc
-
-    @override(Stream)
-    async def wait_closed(self):
-        exc: Optional[Exception] = None
-        try:
-            await self.drain()
-        except Exception as e:
-            exc = e
-        try:
-            super().wait_closed()
-        except Exception as e:
-            if exc is None:
-                exc = e
-        if exc is not None:
-            raise exc
-
-    @override(Stream)
-    def write(self, buf: bytes):
+    def write_primitive(self, buf: bytes):
         self.write_frame(0x82, buf)
 
     @override(Stream)
-    async def read(self) -> bytes:
+    async def read_primitive(self) -> bytes:
         assert self.next_layer is not None
-        buf = self.pop()
-        if len(buf) != 0:
-            return buf
         buf = await self.next_layer.readexactly(2)
         flags, blen = struct.unpack('!BB', buf)
         m, blen = blen & 0x80, blen & 0x7f
@@ -85,9 +52,10 @@ class WSStream(Stream):
             blen, = struct.unpack('!Q', buf)
         if m != 0:
             mask = await self.next_layer.readexactly(4)
-        buf = await self.next_layer.readexactly(blen)
-        if m != 0:
+            buf = await self.next_layer.readexactly(blen)
             buf = bytes(c ^ mask[i % 4] for i, c in enumerate(buf))
+        else:
+            buf = await self.next_layer.readexactly(blen)
         op = flags & 0xf
         if op == 8:  # close
             return b''

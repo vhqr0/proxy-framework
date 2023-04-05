@@ -41,33 +41,15 @@ class VmessStream(Stream):
         self.read_decryptor = read_decryptor
 
     @override(Stream)
-    def close(self):
-        exc: Optional[Exception] = None
-        try:
-            self.write(b'')
-        except Exception as e:
-            exc = e
-        try:
-            super().close()
-        except Exception as e:
-            if exc is None:
-                exc = e
-        if exc is not None:
-            raise exc
-
-    @override(Stream)
-    def write(self, buf: bytes):
+    def write_primitive(self, buf: bytes):
         assert self.next_layer is not None
         buf = self.write_encryptor.encrypt(buf)
         buf = struct.pack('!H', len(buf)) + buf
         self.next_layer.write(buf)
 
     @override(Stream)
-    async def read(self) -> bytes:
+    async def read_primitive(self) -> bytes:
         assert self.next_layer is not None
-        buf = self.pop()
-        if len(buf) != 0:
-            return buf
         buf = await self.next_layer.readexactly(2)
         blen, = struct.unpack('!H', buf)
         buf = await self.next_layer.readexactly(blen)

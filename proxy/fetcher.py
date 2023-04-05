@@ -8,8 +8,6 @@ class Fetcher(MappedSerializable['Fetcher'], Loggable):
     url: str
     name: str
 
-    scheme_map = dict()
-
     def __init__(self, url: str, name: str, **kwargs):
         super().__init__(**kwargs)
         self.url = url

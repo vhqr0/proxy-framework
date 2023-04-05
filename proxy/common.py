@@ -50,6 +50,8 @@ class MappedSerializable(Serializable[Scheme]):
     scheme_map: dict[str, type[Scheme]]
 
     def __init_subclass__(cls, **kwargs):
+        if not hasattr(cls, 'scheme_map'):
+            cls.scheme_map = dict()
         if hasattr(cls, 'scheme'):
             cls.scheme_map[cls.scheme] = cls
 

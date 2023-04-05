@@ -19,16 +19,26 @@ class Stream(MultiLayer['Stream'], Loggable):
         return buf
 
     def close(self):
-        if self.next_layer is not None:
-            self.next_layer.close()
+        pass
 
     async def wait_closed(self):
-        if self.next_layer is not None:
-            await self.next_layer.wait_closed()
+        pass
 
-    def write_eof(self):
+    async def ensure_closed(self):
+        try:
+            self.close()
+        except Exception:
+            pass
+        try:
+            await self.wait_closed()
+        except Exception:
+            pass
         if self.next_layer is not None:
-            self.next_layer.write_eof()
+            await self.next_layer.ensure_closed()
+
+    def write_primitive(self, buf: bytes):
+        if len(buf) != 0:
+            self.write(buf)
 
     def write(self, buf: bytes):
         raise NotImplementedError
@@ -41,16 +51,18 @@ class Stream(MultiLayer['Stream'], Loggable):
         while True:
             buf = await reader.read()
             if len(buf) == 0:
-                self.write_eof()
                 break
             self.write(buf)
             await self.drain()
+
+    async def read_primitive(self) -> bytes:
+        raise NotImplementedError
 
     async def read(self) -> bytes:
         buf = self.pop()
         if len(buf) != 0:
             return buf
-        raise NotImplementedError
+        return await self.read_primitive()
 
     async def peek(self) -> bytes:
         if len(self.to_read) == 0:

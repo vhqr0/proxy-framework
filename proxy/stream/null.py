@@ -5,12 +5,9 @@ from .base import Stream
 class NULLStream(Stream):
 
     @override(Stream)
-    def write(self, buf: bytes):
+    def write_primitive(self, buf: bytes):
         pass
 
     @override(Stream)
-    async def read(self) -> bytes:
-        buf = self.pop()
-        if len(buf) != 0:
-            return buf
+    async def read_primitive(self) -> bytes:
         return b''

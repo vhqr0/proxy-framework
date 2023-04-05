@@ -30,16 +30,9 @@ class HTTPAcceptor(ProxyAcceptor):
             else:
                 await self.dispatch_http(stream)
             return stream
-        except Exception as e:
-            exc = e
-
-        try:
-            stream.close()
-            await stream.wait_closed()
         except Exception:
-            pass
-
-        raise exc
+            await stream.ensure_closed()
+            raise
 
     async def dispatch_socks5(self, stream: Stream):
         buf = await stream.readatleast(3)

@@ -46,8 +46,6 @@ class VmessOutbox(Outbox):
 
     @override(Outbox)
     async def connect(self, req: Request) -> Stream:
-        if len(req.rest) == 0:
-            req.rest = await req.stream.readatleast(1)
         next_connector = TCPConnector(
             tcp_extra_kwargs=self.tcp_extra_kwargs,
             addr=self.url.addr,

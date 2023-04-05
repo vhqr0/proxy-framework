@@ -32,11 +32,18 @@ class OutboxDispatcher(Serializable['OutboxDispatcher'], Loggable):
             if direct_outbox is not None else TCPOutbox(name='DIRECT')
         self.forward_outboxes = forward_outboxes \
             if forward_outboxes is not None else list()
+        self.fetchers = fetchers if fetchers is not None else list()
+        self.connect_retry = connect_retry
+
+    def check_outboxes(self):
+        self.forward_outboxes = [
+            outbox for outbox in self.forward_outboxes if outbox.weight > 0.0
+        ]
         if len(self.forward_outboxes) == 0:
             self.logger.warning('auto add forward outbox')
             self.forward_outboxes.append(TCPOutbox(name='FORWARD'))
-        self.fetchers = fetchers if fetchers is not None else list()
-        self.connect_retry = connect_retry
+        self.connect_retry = \
+            min(self.connect_retry, len(self.forward_outboxes))
 
     @override(Serializable)
     def to_dict(self) -> dict[str, Any]:
@@ -71,12 +78,14 @@ class OutboxDispatcher(Serializable['OutboxDispatcher'], Loggable):
         for fetcher_obj in obj.get('fetchers') or list():
             fetchers.append(Fetcher.from_dict(fetcher_obj))
         connect_retry = obj.get('connect_retry') or CONNECT_RETRY
-        return cls(rule_matcher=rule_matcher,
-                   block_outbox=block_outbox,
-                   direct_outbox=direct_outbox,
-                   forward_outboxes=forward_outboxes,
-                   fetchers=fetchers,
-                   connect_retry=connect_retry)
+        return cls(
+            rule_matcher=rule_matcher,
+            block_outbox=block_outbox,
+            direct_outbox=direct_outbox,
+            forward_outboxes=forward_outboxes,
+            fetchers=fetchers,
+            connect_retry=connect_retry,
+        )
 
     def dispatch(self, addr: str) -> list[Outbox]:
         rule = self.rule_matcher.match(addr)
@@ -88,5 +97,5 @@ class OutboxDispatcher(Serializable['OutboxDispatcher'], Loggable):
         return random.choices(
             self.forward_outboxes,
             weights=weights,
-            k=min(self.connect_retry, len(self.forward_outboxes)),
+            k=self.connect_retry,
         )

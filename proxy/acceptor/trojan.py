@@ -31,12 +31,12 @@ class TrojanAcceptor(ProxyAcceptor):
                 addr = addr_bytes.decode()
             elif buf[59] == 1:  # ipv4
                 buf, rest = buf[:68], buf[68:]
-                auth, crlf1, cmd, _, addr_bytes, port = struct.unpack(
+                auth, crlf1, cmd, _, addr_bytes, port, crlf2 = struct.unpack(
                     '!56s2sBB4sH2s', buf)
                 addr = socket.inet_ntop(socket.AF_INET, addr_bytes)
             elif buf[59] == 4:  # ipv6
                 buf, rest = buf[:80], buf[80:]
-                auth, crlf1, cmd, _, addr_bytes, port = struct.unpack(
+                auth, crlf1, cmd, _, addr_bytes, port, crlf2 = struct.unpack(
                     '!56s2sBB16sH2s', buf)
                 addr = socket.inet_ntop(socket.AF_INET6, addr_bytes)
             else:
@@ -47,13 +47,6 @@ class TrojanAcceptor(ProxyAcceptor):
                 raise RuntimeError('invalid trojan password')
             self.addr, self.rest = (addr, port), rest
             return stream
-        except Exception as e:
-            exc = e
-
-        try:
-            stream.close()
-            await stream.wait_closed()
         except Exception:
-            pass
-
-        raise exc
+            await stream.ensure_closed()
+            raise

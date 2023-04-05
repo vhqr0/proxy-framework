@@ -14,7 +14,7 @@ class TrojanInbox(TLSCtxInbox):
         return sha224(self.url.pwd.encode()).hexdigest().encode()
 
     @override(TLSCtxInbox)
-    async def accept(self, next_acceptor: Acceptor) -> Request:
+    async def accept_primitive(self, next_acceptor: Acceptor) -> Request:
         acceptor = TrojanAcceptor(auth=self.auth, next_layer=next_acceptor)
         stream = await acceptor.accept()
         return Request(stream=stream, addr=acceptor.addr, rest=acceptor.rest)

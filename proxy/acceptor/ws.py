@@ -40,24 +40,15 @@ class WSAcceptor(Acceptor):
             key_match = self.ws_key_re.search(headers)
             if req_match is None or host_match is None or key_match is None:
                 raise RuntimeError('invalid http request')
-            path, ver = req_match[1], req_match[2]
-            host, key = host_match[1], key_match[1]
-            self.path = path
-            self.host = host
+            path, ver, host, key = \
+                req_match[1], req_match[2], host_match[1], key_match[1]
             key_hash = sha1((key + self.WS_MAGIC).encode()).digest()
             accept = base64.b64encode(key_hash).decode()
             res = self.WS_RES_FORMAT.format(ver, accept)
             next_stream.write(res.encode())
             await next_stream.drain()
-            stream = WSStream(mask_payload=False, next_layer=next_stream)
-            return stream
-        except Exception as e:
-            exc = e
-
-        try:
-            next_stream.close()
-            await stream.wait_closed()
+            self.path, self.host = path, host
+            return WSStream(mask_payload=False, next_layer=next_stream)
         except Exception:
-            pass
-
-        raise exc
+            await next_stream.ensure_closed()
+            raise

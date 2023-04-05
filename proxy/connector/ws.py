@@ -40,13 +40,6 @@ class WSConnector(Connector):
                 stream.write(rest)
                 await stream.drain()
             return stream
-        except Exception as e:
-            exc = e
-
-        try:
-            next_stream.close()
-            await next_stream.wait_closed()
         except Exception:
-            pass
-
-        raise exc
+            await next_stream.ensure_closed()
+            raise

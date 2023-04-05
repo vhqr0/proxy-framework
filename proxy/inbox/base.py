@@ -25,7 +25,7 @@ class Inbox(MappedSerializable['Inbox'], Loggable):
     url: DefaultURL
     tcp_extra_kwargs: dict[str, Any]
 
-    scheme_map = dict()
+    ensure_rest: bool = True
 
     def __init__(self,
                  url: Optional[str] = None,
@@ -62,9 +62,15 @@ class Inbox(MappedSerializable['Inbox'], Loggable):
     async def accept_from_tcp(self, reader: asyncio.StreamReader,
                               writer: asyncio.StreamWriter) -> Request:
         next_acceptor = TCPAcceptor(reader=reader, writer=writer)
-        return await self.accept(next_acceptor)
+        return await self.accept(next_acceptor=next_acceptor)
 
     async def accept(self, next_acceptor: Acceptor) -> Request:
+        req = await self.accept_primitive(next_acceptor=next_acceptor)
+        if self.ensure_rest and len(req.rest) == 0:
+            req.rest = await req.stream.readatleast(1)
+        return req
+
+    async def accept_primitive(self, next_acceptor: Acceptor) -> Request:
         raise NotImplementedError
 
 

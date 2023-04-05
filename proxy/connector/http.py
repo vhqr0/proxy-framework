@@ -26,13 +26,6 @@ class HTTPConnector(ProxyConnector):
                 stream.write(rest)
                 await stream.drain()
             return stream
-        except Exception as e:
-            exc = e
-
-        try:
-            stream.close()
-            await stream.wait_closed()
         except Exception:
-            pass
-
-        raise exc
+            await stream.ensure_closed()
+            raise

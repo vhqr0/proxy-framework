@@ -20,8 +20,6 @@ class Outbox(MappedSerializable['Outbox'], Loggable):
     fetcher: str
     tcp_extra_kwargs: dict[str, Any]
 
-    scheme_map = dict()
-
     def __init__(self,
                  url: Optional[str] = None,
                  name: Optional[str] = None,

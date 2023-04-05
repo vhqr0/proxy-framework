@@ -16,6 +16,13 @@ from proxy.stream import Stream
 from ..stream import CounteredAESGCM, VmessStream
 
 
+def fnv32a(buf: bytes) -> bytes:
+    r, p, m = 0x811c9dc5, 0x01000193, 0xffffffff
+    for c in buf:
+        r = ((r ^ c) * p) & m
+    return struct.pack('!I', r)
+
+
 class VmessConnector(ProxyConnector):
     userid: UUID
     reqkey: bytes
@@ -74,7 +81,7 @@ class VmessConnector(ProxyConnector):
             addr_bytes,
             random.randbytes(plen),
         )
-        req += self.fnv32a(req)
+        req += fnv32a(req)
         cipher = Cipher(AES(self.reqkey), CFB(md5(4 * ts).digest()))
         encryptor = cipher.encryptor()
         req = encryptor.update(req) + encryptor.finalize()
@@ -96,20 +103,6 @@ class VmessConnector(ProxyConnector):
                 read_decryptor=read_decryptor,
                 next_layer=next_stream,
             )
-        except Exception as e:
-            exc = e
-
-        try:
-            next_stream.close()
-            await next_stream.wait_closed()
         except Exception:
-            pass
-
-        raise exc
-
-    @staticmethod
-    def fnv32a(buf: bytes) -> bytes:
-        r, p, m = 0x811c9dc5, 0x01000193, 0xffffffff
-        for c in buf:
-            r = ((r ^ c) * p) & m
-        return struct.pack('!I', r)
+            await next_stream.ensure_closed()
+            raise

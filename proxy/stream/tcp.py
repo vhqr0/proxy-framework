@@ -18,42 +18,14 @@ class TCPStream(Stream):
 
     @override(Stream)
     def close(self):
-        exc: Optional[Exception] = None
-        try:
-            self.writer.close()
-        except Exception as e:
-            exc = e
-        try:
-            super().close()
-        except Exception as e:
-            if exc is None:
-                exc = e
-        if exc is not None:
-            raise exc
+        self.writer.close()
 
     @override(Stream)
     async def wait_closed(self):
-        exc: Optional[Exception] = None
-        try:
-            await self.writer.wait_closed()
-        except Exception as e:
-            exc = e
-        try:
-            await super().wait_closed()
-        except Exception as e:
-            if exc is None:
-                exc = e
-        if exc is not None:
-            raise exc
+        await self.writer.wait_closed()
 
     @override(Stream)
-    def write_eof(self):
-        if self.writer.can_write_eof():
-            self.writer.write_eof()
-        super().write_eof()
-
-    @override(Stream)
-    def write(self, buf: bytes):
+    def write_primitive(self, buf: bytes):
         self.writer.write(buf)
 
     @override(Stream)
@@ -61,8 +33,5 @@ class TCPStream(Stream):
         await self.writer.drain()
 
     @override(Stream)
-    async def read(self) -> bytes:
-        buf = self.pop()
-        if len(buf) != 0:
-            return buf
+    async def read_primitive(self) -> bytes:
         return await self.reader.read(STREAM_TCP_BUFSIZE)
