@@ -37,11 +37,11 @@ class Stream(MultiLayer['Stream'], Loggable):
             await self.next_layer.ensure_closed()
 
     def write_primitive(self, buf: bytes):
-        if len(buf) != 0:
-            self.write(buf)
+        raise NotImplementedError
 
     def write(self, buf: bytes):
-        raise NotImplementedError
+        if len(buf) != 0:
+            self.write_primitive(buf)
 
     async def drain(self):
         if self.next_layer is not None:
