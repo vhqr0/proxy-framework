@@ -9,7 +9,7 @@ from .base import ProxyAcceptor
 
 class HTTPAcceptor(ProxyAcceptor):
     HTTP_RES_FORMAT = ('{} 200 Connection Established\r\n'
-                       'Connection close\r\n\r\n')
+                       'Connection: close\r\n\r\n')
     HTTP_REQ_RE = r'^(\w+) [^ ]+ (HTTP/[^ \r\n]+)\r\n'
     HTTP_HOST_RE = r'\r\nHost: ([^ :\[\]\r\n]+|\[[:0-9a-fA-F]+\])(:([0-9]+))?'
 

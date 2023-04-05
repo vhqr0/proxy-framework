@@ -8,14 +8,14 @@ from .stream import Stream
 
 
 class ProxyServer(Serializable['ProxyServer'], Loggable):
+    tasks: set[asyncio.Task]
     inbox: Inbox
     outbox_dispatcher: OutboxDispatcher
-
-    tasks: set[asyncio.Task] = set()
 
     def __init__(self, inbox: Inbox, outbox_dispatcher: OutboxDispatcher,
                  **kwargs):
         super().__init__(**kwargs)
+        self.tasks = set()
         self.inbox = inbox
         self.outbox_dispatcher = outbox_dispatcher
 
@@ -92,23 +92,24 @@ class ProxyServer(Serializable['ProxyServer'], Loggable):
             self.logger.debug('except while proxing to %s via %s: %.60s', req,
                               outbox, e)
 
-    @classmethod
-    async def stream_proxy(cls, s1: Stream, s2: Stream):
-        t1 = asyncio.create_task(s1.write_stream(s2))
-        t2 = asyncio.create_task(s2.write_stream(s1))
-        for t in (t1, t2):
-            cls.tasks.add(t)
-            t.add_done_callback(cls.tasks.discard)
+    async def stream_proxy(self, s1: Stream, s2: Stream):
+        tasks = (
+            asyncio.create_task(s1.write_stream(s2)),
+            asyncio.create_task(s2.write_stream(s1)),
+        )
+        for task in tasks:
+            self.tasks.add(task)
+            task.add_done_callback(self.tasks.discard)
 
         exc: Optional[Exception] = None
 
         try:
-            await asyncio.gather(t1, t2)
+            await asyncio.gather(*tasks)
         except Exception as e:
             exc = e
-            for t in (t1, t2):
-                if not t.cancelled():
-                    t.cancel()
+            for task in tasks:
+                if not task.cancelled():
+                    task.cancel()
 
         for s in (s1, s2):
             try:
