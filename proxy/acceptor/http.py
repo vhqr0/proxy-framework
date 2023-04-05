@@ -40,8 +40,7 @@ class HTTPAcceptor(ProxyAcceptor):
         ver, nmeths, meths = struct.unpack(f'!BB{nmeths}s', buf)
         if ver != 5 or 0 not in meths:
             raise RuntimeError('invalid socks5 request')
-        stream.write(b'\x05\x00')
-        await stream.drain()
+        await stream.writeall(b'\x05\x00')
         buf = await stream.readatleast(4)
         if buf[3] == 3:  # domain
             ver, cmd, rsv, _, _, addr_bytes, port = struct.unpack(
@@ -58,8 +57,7 @@ class HTTPAcceptor(ProxyAcceptor):
             raise RuntimeError('invalid socks5 header')
         if ver != 5 or cmd != 1 or rsv != 0:
             raise RuntimeError('invalid socks5 header')
-        stream.write(b'\x05\x00\x00\x01\x00\x00\x00\x00\x00\x00')
-        await stream.drain()
+        await stream.writeall(b'\x05\x00\x00\x01\x00\x00\x00\x00\x00\x00')
         self.addr, self.rest = (addr, port), b''
 
     async def dispatch_http(self, stream: Stream):
@@ -77,8 +75,7 @@ class HTTPAcceptor(ProxyAcceptor):
             addr = addr[1:-1]
         if meth == 'CONNECT':
             res = self.HTTP_RES_FORMAT.format(ver)
-            stream.write(res.encode())
-            await stream.drain()
+            await stream.writeall(res.encode())
         else:
             headers = '\r\n'.join(header for header in headers.split('\r\n')
                                   if not header.startswith('Proxy-'))

@@ -44,7 +44,7 @@ class TrojanAcceptor(ProxyAcceptor):
             if cmd != 1 or crlf1 != b'\r\n' or crlf2 != b'\r\n':
                 raise RuntimeError('invalid trojan header')
             if auth != self.auth:
-                raise RuntimeError('invalid trojan password')
+                raise RuntimeError('invalid trojan auth')
             self.addr, self.rest = (addr, port), rest
             return stream
         except Exception:

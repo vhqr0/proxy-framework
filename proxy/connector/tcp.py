@@ -30,8 +30,7 @@ class TCPConnector(Connector):
 
         try:
             if len(rest) != 0:
-                stream.write(rest)
-                await stream.drain()
+                await stream.writeall(rest)
             return stream
         except Exception:
             await stream.ensure_closed()

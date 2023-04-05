@@ -37,8 +37,7 @@ class WSConnector(Connector):
                 raise RuntimeError('invalid ws response')
             stream = WSStream(next_layer=next_stream)
             if len(rest) != 0:
-                stream.write(rest)
-                await stream.drain()
+                await stream.writeall(rest)
             return stream
         except Exception:
             await next_stream.ensure_closed()

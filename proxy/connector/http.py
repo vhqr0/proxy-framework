@@ -23,8 +23,7 @@ class HTTPConnector(ProxyConnector):
             if not headers.startswith(b'HTTP/1.1 200'):
                 raise RuntimeError('invalid http response')
             if len(rest) != 0:
-                stream.write(rest)
-                await stream.drain()
+                await stream.writeall(rest)
             return stream
         except Exception:
             await stream.ensure_closed()

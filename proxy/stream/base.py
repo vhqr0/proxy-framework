@@ -47,13 +47,16 @@ class Stream(MultiLayer['Stream'], Loggable):
         if self.next_layer is not None:
             await self.next_layer.drain()
 
+    async def writeall(self, buf: bytes):
+        self.write(buf)
+        await self.drain()
+
     async def write_stream(self, reader: 'Stream'):
         while True:
             buf = await reader.read()
             if len(buf) == 0:
                 break
-            self.write(buf)
-            await self.drain()
+            await self.writeall(buf)
 
     async def read_primitive(self) -> bytes:
         raise NotImplementedError
