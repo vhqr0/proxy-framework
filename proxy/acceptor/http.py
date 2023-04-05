@@ -8,8 +8,8 @@ from .base import ProxyAcceptor
 
 
 class HTTPAcceptor(ProxyAcceptor):
-    HTTP_RES_TEMPLATE = ('{} 200 Connection Established\r\n'
-                         'Connection close\r\n\r\n')
+    HTTP_RES_FORMAT = ('{} 200 Connection Established\r\n'
+                       'Connection close\r\n\r\n')
     HTTP_REQ_RE = r'^(\w+) [^ ]+ (HTTP/[^ \r\n]+)\r\n'
     HTTP_HOST_RE = r'\r\nHost: ([^ :\[\]\r\n]+|\[[:0-9a-fA-F]+\])(:([0-9]+))?'
 
@@ -73,17 +73,17 @@ class HTTPAcceptor(ProxyAcceptor):
         buf = await stream.read()
         headers_bytes, rest = buf.split(b'\r\n\r\n', 1)
         headers = headers_bytes.decode()
-        req = self.http_req_re.search(headers)
-        host = self.http_host_re.search(headers)
-        if req is None or host is None:
+        req_match = self.http_req_re.search(headers)
+        host_match = self.http_host_re.search(headers)
+        if req_match is None or host_match is None:
             raise RuntimeError('invalid http request')
-        meth, ver, addr = req[1], req[2], host[1]
+        meth, ver, addr = req_match[1], req_match[2], host_match[1]
         assert meth is not None and ver is not None and addr is not None
-        port = 80 if host[3] is None else int(host[3])
+        port = 80 if host_match[3] is None else int(host_match[3])
         if addr[0] == '[':
             addr = addr[1:-1]
         if meth == 'CONNECT':
-            res = self.HTTP_RES_TEMPLATE.format(ver)
+            res = self.HTTP_RES_FORMAT.format(ver)
             stream.write(res.encode())
             await stream.drain()
         else:

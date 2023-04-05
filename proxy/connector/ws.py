@@ -10,12 +10,12 @@ class WSConnector(Connector):
     path: str
     host: str
 
-    REQ_TEMPLATE = ('GET {} HTTP/1.1\r\n'
-                    'Host: {}\r\n'
-                    'Upgrade: websocket\r\n'
-                    'Connection: Upgrade\r\n'
-                    'Sec-WebSocket-Key: {}\r\n'
-                    'Sec-WebSocket-Version: 13\r\n\r\n')
+    REQ_FORMAT = ('GET {} HTTP/1.1\r\n'
+                  'Host: {}\r\n'
+                  'Upgrade: websocket\r\n'
+                  'Connection: Upgrade\r\n'
+                  'Sec-WebSocket-Key: {}\r\n'
+                  'Sec-WebSocket-Version: 13\r\n\r\n')
 
     ensure_next_layer = True
 
@@ -28,7 +28,7 @@ class WSConnector(Connector):
     async def connect(self, rest: bytes = b'') -> Stream:
         assert self.next_layer is not None
         key = base64.b64decode(random.randbytes(16)).decode()
-        req = self.REQ_TEMPLATE.format(self.path, self.host, key)
+        req = self.REQ_FORMAT.format(self.path, self.host, key)
         next_stream = await self.next_layer.connect(rest=req.encode())
 
         try:

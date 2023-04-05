@@ -11,11 +11,11 @@ class WSAcceptor(Acceptor):
     path: str
     host: str
 
-    WS_RES_TEMPLATE = ('{} 101 Switching Protocols\r\n'
-                       'Upgrade: websocket\r\n'
-                       'Connection: Upgrade\r\n'
-                       'Sec-WebSocket-Accept: {}\r\n'
-                       'Sec-WebSocket-Version: 13\r\n\r\n')
+    WS_RES_FORMAT = ('{} 101 Switching Protocols\r\n'
+                     'Upgrade: websocket\r\n'
+                     'Connection: Upgrade\r\n'
+                     'Sec-WebSocket-Accept: {}\r\n'
+                     'Sec-WebSocket-Version: 13\r\n\r\n')
     HTTP_REQ_RE = r'^GET ([^ ]+) (HTTP/[^ \r\n]+)\r\n'
     HTTP_HOST_RE = r'\r\nHost: ([^ :\[\]\r\n]+|\[[:0-9a-fA-F]+\])(:([0-9]+))?'
     WS_KEY_RE = r'\r\nSec-WebSocket-Key: ([a-zA-Z+/=]*)'
@@ -27,11 +27,6 @@ class WSAcceptor(Acceptor):
 
     ensure_next_layer = True
 
-    def __init__(self, path: str = '/', host: str = 'localhost', **kwargs):
-        super().__init__(**kwargs)
-        self.path = path
-        self.host = host
-
     @override(Acceptor)
     async def accept(self) -> Stream:
         assert self.next_layer is not None
@@ -42,17 +37,18 @@ class WSAcceptor(Acceptor):
             headers_bytes, content = buf.split(b'\r\n\r\n', 1)
             next_stream.push(content)
             headers = headers_bytes.decode()
-            req = self.http_req_re.search(headers)
-            _host = self.http_host_re.search(headers)
-            _key = self.ws_key_re.search(headers)
-            if req is None or _host is None or _key is None:
+            req_match = self.http_req_re.search(headers)
+            host_match = self.http_host_re.search(headers)
+            key_match = self.ws_key_re.search(headers)
+            if req_match is None or host_match is None or key_match is None:
                 raise RuntimeError('invalid http request')
-            path, ver, host, key = req[1], req[2], _host[1], _key[1]
-            if path != self.path or host != self.host:
-                raise RuntimeError('invalid http entry')
+            path, ver = req_match[1], req_match[2]
+            host, key = host_match[1], key_match[1]
+            self.path = path
+            self.host = host
             key_hash = sha1((key + self.WS_MAGIC).encode()).digest()
             accept = base64.b64encode(key_hash).decode()
-            res = self.WS_RES_TEMPLATE.format(ver, accept)
+            res = self.WS_RES_FORMAT.format(ver, accept)
             next_stream.write(res.encode())
             await next_stream.drain()
             stream = WSStream(mask_payload=False, next_layer=next_stream)

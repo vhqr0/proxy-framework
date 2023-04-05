@@ -13,7 +13,9 @@ class ProxyServer(Serializable['ProxyServer'], Loggable):
 
     tasks: set[asyncio.Task] = set()
 
-    def __init__(self, inbox: Inbox, outbox_dispatcher: OutboxDispatcher):
+    def __init__(self, inbox: Inbox, outbox_dispatcher: OutboxDispatcher,
+                 **kwargs):
+        super().__init__(**kwargs)
         self.inbox = inbox
         self.outbox_dispatcher = outbox_dispatcher
 

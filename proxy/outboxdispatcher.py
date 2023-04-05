@@ -22,7 +22,9 @@ class OutboxDispatcher(Serializable['OutboxDispatcher'], Loggable):
                  direct_outbox: Optional[Outbox] = None,
                  forward_outboxes: Optional[list[Outbox]] = None,
                  fetchers: Optional[list[Fetcher]] = None,
-                 connect_retry: int = CONNECT_RETRY):
+                 connect_retry: int = CONNECT_RETRY,
+                 **kwargs):
+        super().__init__(**kwargs)
         self.rule_matcher = rule_matcher
         self.block_outbox = block_outbox \
             if block_outbox is not None else NULLOutbox(name='BLOCK')

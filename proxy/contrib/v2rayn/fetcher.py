@@ -18,7 +18,9 @@ from proxy.outbox import Outbox
 class V2rayNFetcher(Fetcher):
     scheme = 'v2rayn'
 
-    url_re = re.compile('^([0-9a-zA-Z]+)://(.*)$')
+    URL_RE = r'^([0-9a-zA-Z]+)://(.*)$'
+
+    url_re = re.compile(URL_RE)
 
     @override(Fetcher)
     def fetch(self) -> list[Outbox]:

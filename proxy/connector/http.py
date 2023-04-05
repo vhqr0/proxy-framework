@@ -6,7 +6,7 @@ from .base import ProxyConnector
 class HTTPConnector(ProxyConnector):
     ensure_next_layer = True
 
-    REQ_TEMPLATE = 'CONNECT {} HTTP/1.1\r\nHost: {}\r\n\r\n'
+    REQ_FORMAT = 'CONNECT {} HTTP/1.1\r\nHost: {}\r\n\r\n'
 
     @override(ProxyConnector)
     async def connect(self, rest: bytes = b'') -> Stream:
@@ -15,7 +15,7 @@ class HTTPConnector(ProxyConnector):
         if addr.find(':') >= 0:
             addr = '[' + addr + ']'
         host = '{}:{}'.format(addr, port)
-        req = self.REQ_TEMPLATE.format(host, host)
+        req = self.REQ_FORMAT.format(host, host)
         stream = await self.next_layer.connect(rest=req.encode())
 
         try:

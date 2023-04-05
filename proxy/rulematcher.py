@@ -40,7 +40,9 @@ class RuleMatcher(Serializable['RuleMatcher'], Loggable):
 
     def __init__(self,
                  rules_default: str = RULES_DEFAULT,
-                 rules_file: str = RULES_FILE):
+                 rules_file: str = RULES_FILE,
+                 **kwargs):
+        super().__init__(**kwargs)
         self.rules_default = Rule.from_str(rules_default)
         self.rules_file = rules_file
         self.rules = None
