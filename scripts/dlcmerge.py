@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
-"""
-Merge https://github.com/v2fly/domain-list-community to one single file.
-The four type: domain, full, keyword and regexp, only support domain and full.
-Multi-tags syntax is not supported. (So far it doesn't seem to be used.)
+"""DLC(domain list community) merger.
+
+Merge https://github.com/v2fly/domain-list-community to a rules file.
+Only (domain, full) in (domain, full, keyword, regexp) are supported.
+MultiTags is not supported. (So far it doesn't seem to be used)
 """
 
 import argparse
+import os.path
 import re
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-d', '--datapath', default='domain-list-community/data')
+parser.add_argument('-d',
+                    '--data-path',
+                    default=os.path.join('domain-list-community', 'data'))
 args = parser.parse_args()
 
-datapath = args.datapath
+data_path = args.data_path
 
-tag2rule = {
+tag_dict = {
     'ads': 'block',
     'cn': 'direct',
     '!cn': 'forward',
@@ -23,20 +27,20 @@ tag2rule = {
 line_re = re.compile(r'^((\w+):)?([^\s\t#]+)( @([^\s\t#]+))?')
 
 
-def load_rule(rule_file: str, default_tag: str):
-    for line in open(f'{datapath}/{rule_file}'):
-        res = line_re.match(line.strip())
-        if res is None:
+def load_rules(rules_file: str, fallback_tag: str):
+    for line in open(os.path.join(data_path, rules_file)):
+        line_match = line_re.match(line.strip())
+        if line_match is None:
             continue
-        command = res[2] or 'domain'
-        target = res[3]
-        tag = res[5] or default_tag
-        rule = tag2rule[tag]
+        command = line_match[2] or 'domain'
+        arg = line_match[3]
+        tag = line_match[5] or fallback_tag
+        rule = tag_dict[tag]
         if command in ('domain', 'full'):
-            print(f'{rule}\t{target}')
+            print(f'{rule}\t{arg}')
         elif command == 'include':
-            load_rule(target, default_tag)
+            load_rules(arg, fallback_tag)
 
 
-load_rule('cn', 'cn')
-load_rule('geolocation-!cn', '!cn')
+load_rules('cn', 'cn')
+load_rules('geolocation-!cn', '!cn')
