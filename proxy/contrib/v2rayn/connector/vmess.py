@@ -85,10 +85,7 @@ class VmessConnector(ProxyConnector):
         next_stream = await self.next_layer.connect(rest=req)
 
         try:
-            buf = await next_stream.read()
-            if len(buf) > 4:
-                next_stream.push(buf[4:])
-                buf = buf[:4]
+            buf = await next_stream.readexactly(4)
             cipher = Cipher(AES(rkey), CFB(riv))
             decryptor = cipher.decryptor()
             buf = decryptor.update(buf) + decryptor.finalize()

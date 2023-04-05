@@ -33,10 +33,8 @@ class WSAcceptor(Acceptor):
         next_stream = await self.next_layer.accept()
 
         try:
-            buf = await next_stream.read()
-            headers_bytes, content = buf.split(b'\r\n\r\n', 1)
-            next_stream.push(content)
-            headers = headers_bytes.decode()
+            buf = await next_stream.readuntil(b'\r\n\r\n', strip=True)
+            headers = buf.decode()
             req_match = self.http_req_re.search(headers)
             host_match = self.http_host_re.search(headers)
             key_match = self.ws_key_re.search(headers)

@@ -22,7 +22,7 @@ class TrojanAcceptor(ProxyAcceptor):
         stream = await self.next_layer.accept()
 
         try:
-            buf = await stream.read()
+            buf = await stream.readatleast(60)
             if buf[59] == 3:  # domain
                 alen = buf[60]
                 buf, rest = buf[:65 + alen], buf[65 + alen:]

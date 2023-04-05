@@ -94,8 +94,8 @@ class ProxyServer(Serializable['ProxyServer'], Loggable):
 
     @classmethod
     async def stream_proxy(cls, s1: Stream, s2: Stream):
-        t1 = asyncio.create_task(cls.stream_copy(s1, s2))
-        t2 = asyncio.create_task(cls.stream_copy(s2, s1))
+        t1 = asyncio.create_task(s1.write_stream(s2))
+        t2 = asyncio.create_task(s2.write_stream(s1))
         for t in (t1, t2):
             cls.tasks.add(t)
             t.add_done_callback(cls.tasks.discard)
@@ -120,13 +120,3 @@ class ProxyServer(Serializable['ProxyServer'], Loggable):
 
         if exc is not None:
             raise exc
-
-    @staticmethod
-    async def stream_copy(reader: Stream, writer: Stream):
-        while True:
-            buf = await reader.read()
-            if len(buf) == 0:
-                writer.write_eof()
-                break
-            writer.write(buf)
-            await writer.drain()

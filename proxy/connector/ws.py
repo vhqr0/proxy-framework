@@ -32,9 +32,7 @@ class WSConnector(Connector):
         next_stream = await self.next_layer.connect(rest=req.encode())
 
         try:
-            buf = await next_stream.read()
-            headers, content = buf.split(b'\r\n\r\n', 1)
-            next_stream.push(content)
+            headers = await next_stream.readuntil(b'\r\n\r\n', strip=True)
             if not headers.startswith(b'HTTP/1.1 101'):
                 raise RuntimeError('invalid ws response')
             stream = WSStream(next_layer=next_stream)

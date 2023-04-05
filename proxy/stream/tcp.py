@@ -2,6 +2,7 @@ import asyncio
 from typing import Optional
 
 from ..common import override
+from ..defaults import STREAM_TCP_BUFSIZE
 from .base import Stream
 
 
@@ -64,4 +65,4 @@ class TCPStream(Stream):
         buf = self.pop()
         if len(buf) != 0:
             return buf
-        return await self.reader.read(4096)
+        return await self.reader.read(STREAM_TCP_BUFSIZE)

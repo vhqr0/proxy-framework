@@ -19,9 +19,7 @@ class HTTPConnector(ProxyConnector):
         stream = await self.next_layer.connect(rest=req.encode())
 
         try:
-            buf = await stream.read()
-            headers, content = buf.split(b'\r\n\r\n', 1)
-            stream.push(content)
+            headers = await stream.readuntil(b'\r\n\r\n', strip=True)
             if not headers.startswith(b'HTTP/1.1 200'):
                 raise RuntimeError('invalid http response')
             if len(rest) != 0:

@@ -42,14 +42,14 @@ class HTTPAcceptor(ProxyAcceptor):
         raise exc
 
     async def dispatch_socks5(self, stream: Stream):
-        buf = await stream.read()
+        buf = await stream.readatleast(3)
         nmeths = buf[1]
         ver, nmeths, meths = struct.unpack(f'!BB{nmeths}s', buf)
         if ver != 5 or 0 not in meths:
             raise RuntimeError('invalid socks5 request')
         stream.write(b'\x05\x00')
         await stream.drain()
-        buf = await stream.read()
+        buf = await stream.readatleast(4)
         if buf[3] == 3:  # domain
             ver, cmd, rsv, _, _, addr_bytes, port = struct.unpack(
                 f'!BBBBB{buf[4]}sH', buf)
@@ -70,9 +70,9 @@ class HTTPAcceptor(ProxyAcceptor):
         self.addr, self.rest = (addr, port), b''
 
     async def dispatch_http(self, stream: Stream):
-        buf = await stream.read()
-        headers_bytes, rest = buf.split(b'\r\n\r\n', 1)
-        headers = headers_bytes.decode()
+        buf = await stream.readuntil(b'\r\n\r\n', strip=True)
+        rest = stream.pop()
+        headers = buf.decode()
         req_match = self.http_req_re.search(headers)
         host_match = self.http_host_re.search(headers)
         if req_match is None or host_match is None:
