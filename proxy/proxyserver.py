@@ -1,4 +1,5 @@
 import asyncio
+from collections.abc import Coroutine
 from typing import Any
 
 from .common import Loggable, Serializable, override
@@ -43,9 +44,15 @@ class ProxyServer(Serializable['ProxyServer'], Loggable):
             self.logger.error('error while serving: %s', e)
             raise
 
+    def create_task(self, coro: Coroutine) -> asyncio.Task:
+        task = asyncio.create_task(coro)
+        self.tasks.add(task)
+        task.add_done_callback(self.tasks.discard)
+        return task
+
     async def start_server(self):
         server = await asyncio.start_server(
-            self.serve,
+            self.on_connect,
             self.inbox.url.host,
             self.inbox.url.port,
             reuse_address=True,
@@ -55,6 +62,10 @@ class ProxyServer(Serializable['ProxyServer'], Loggable):
         self.logger.info('server start at %s', addrs)
         async with server:
             await server.serve_forever()
+
+    def on_connect(self, reader: asyncio.StreamReader,
+                   writer: asyncio.StreamWriter):
+        self.create_task(self.serve(reader, writer))
 
     async def serve(self, reader: asyncio.StreamReader,
                     writer: asyncio.StreamWriter):
@@ -78,12 +89,9 @@ class ProxyServer(Serializable['ProxyServer'], Loggable):
 
     async def proxy(self, s1: Stream, s2: Stream):
         tasks = (
-            asyncio.create_task(s1.write_stream(s2)),
-            asyncio.create_task(s2.write_stream(s1)),
+            self.create_task(s1.write_stream(s2)),
+            self.create_task(s2.write_stream(s1)),
         )
-        for task in tasks:
-            self.tasks.add(task)
-            task.add_done_callback(self.tasks.discard)
         try:
             await asyncio.gather(*tasks)
         except Exception:

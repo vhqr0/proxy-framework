@@ -1,6 +1,6 @@
 import socket
 import ssl
-import timeit
+from timeit import timeit
 from typing import Any, Optional
 
 from ..common import Loggable, MappedSerializable, override
@@ -89,7 +89,7 @@ class Outbox(MappedSerializable['Outbox'], Loggable):
 
         self.delay, self.weight = -1.0, -1.0
         try:
-            self.delay = timeit.timeit(connect, number=1)
+            self.delay = timeit(connect, number=1)
             self.weight = WEIGHT_INITIAL
         except Exception:
             pass
