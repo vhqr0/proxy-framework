@@ -1,6 +1,5 @@
 import random
 import struct
-from typing import Optional
 
 from ..common import override
 from .base import Stream

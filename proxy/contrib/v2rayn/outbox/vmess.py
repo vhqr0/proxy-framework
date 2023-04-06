@@ -35,6 +35,7 @@ class VmessOutbox(Outbox):
         return obj
 
     @classmethod
+    @override(Outbox)
     def kwargs_from_dict(cls, obj: dict[str, Any]) -> dict[str, Any]:
         kwargs = super().kwargs_from_dict(obj)
         kwargs['userid'] = obj['userid']

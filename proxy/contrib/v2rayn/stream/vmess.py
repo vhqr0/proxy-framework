@@ -1,5 +1,4 @@
 import struct
-from typing import Optional
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
