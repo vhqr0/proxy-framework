@@ -4,8 +4,10 @@ from typing import Any, Optional
 from .common import Loggable, Serializable, override
 from .defaults import CONNECT_RETRY
 from .fetcher import Fetcher
+from .inbox import Request
 from .outbox import NULLOutbox, Outbox, TCPOutbox
 from .rulematcher import Rule, RuleMatcher
+from .stream import Stream
 
 
 class OutboxDispatcher(Serializable['OutboxDispatcher'], Loggable):
@@ -99,3 +101,16 @@ class OutboxDispatcher(Serializable['OutboxDispatcher'], Loggable):
             weights=weights,
             k=self.connect_retry,
         )
+
+    async def connect(self, req: Request) -> Stream:
+        for retry, outbox in enumerate(self.dispatch(req.addr[0])):
+            self.logger.info('connect(%d) to %s via %s', retry, req, outbox)
+            try:
+                stream = await outbox.connect(req=req)
+                outbox.weight_increase()
+                return stream
+            except Exception as e:
+                outbox.weight_decrease()
+                self.logger.debug('connect(%d) to %s via %s: %.60s', retry,
+                                  req, outbox, e)
+        raise RuntimeError('connect retry exceeded')

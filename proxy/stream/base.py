@@ -1,4 +1,6 @@
 import asyncio
+from contextlib import asynccontextmanager
+from typing import Optional
 
 from ..common import Loggable, MultiLayer
 from ..defaults import STREAM_BUFSIZE
@@ -10,6 +12,18 @@ class Stream(MultiLayer['Stream'], Loggable):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.to_read = b''
+
+    @asynccontextmanager
+    async def cm(self, exc_only: bool = False):
+        exc: Optional[BaseException] = None
+        try:
+            yield self
+        except (Exception, asyncio.CancelledError) as e:
+            exc = e
+        if not exc_only or exc is not None:
+            await asyncio.shield(self.ensure_closed())
+        if exc is not None:
+            raise exc
 
     def push(self, buf: bytes):
         self.to_read = buf + self.to_read
@@ -27,9 +41,6 @@ class Stream(MultiLayer['Stream'], Loggable):
     async def ensure_closed(self):
         try:
             self.close()
-        except Exception:
-            pass
-        try:
             await self.wait_closed()
         except Exception:
             pass
@@ -69,18 +80,21 @@ class Stream(MultiLayer['Stream'], Loggable):
 
     async def peek(self) -> bytes:
         if len(self.to_read) == 0:
-            self.to_read = await self.read()
+            self.to_read = await self.read_primitive()
         return self.to_read
 
     async def readatleast(self, n: int) -> bytes:
-        if n > STREAM_BUFSIZE:
-            raise RuntimeError('read over buffer size')
         buf = b''
         while len(buf) < n:
             next_buf = await self.read()
             if len(next_buf) == 0:
                 raise asyncio.IncompleteReadError(partial=buf, expected=n)
             buf += next_buf
+            if len(buf) > STREAM_BUFSIZE:
+                raise asyncio.LimitOverrunError(
+                    message='read over buffer size',
+                    consumed=len(buf),
+                )
         return buf
 
     async def readexactly(self, n: int) -> bytes:

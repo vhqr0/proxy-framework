@@ -20,8 +20,7 @@ class TrojanAcceptor(ProxyAcceptor):
     async def accept(self) -> Stream:
         assert self.next_layer is not None
         stream = await self.next_layer.accept()
-
-        try:
+        async with stream.cm(exc_only=True):
             buf = await stream.readatleast(60)
             if buf[59] == 3:  # domain
                 alen = buf[60]
@@ -47,6 +46,3 @@ class TrojanAcceptor(ProxyAcceptor):
                 raise RuntimeError('invalid trojan auth')
             self.addr, self.rest = (addr, port), rest
             return stream
-        except Exception:
-            await stream.ensure_closed()
-            raise

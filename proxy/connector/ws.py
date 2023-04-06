@@ -30,8 +30,7 @@ class WSConnector(Connector):
         key = base64.b64decode(random.randbytes(16)).decode()
         req = self.REQ_FORMAT.format(self.path, self.host, key)
         next_stream = await self.next_layer.connect(rest=req.encode())
-
-        try:
+        async with next_stream.cm(exc_only=True):
             headers = await next_stream.readuntil(b'\r\n\r\n', strip=True)
             if not headers.startswith(b'HTTP/1.1 101'):
                 raise RuntimeError('invalid ws response')
@@ -39,6 +38,3 @@ class WSConnector(Connector):
             if len(rest) != 0:
                 await stream.writeall(rest)
             return stream
-        except Exception:
-            await next_stream.ensure_closed()
-            raise

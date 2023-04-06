@@ -45,7 +45,7 @@ class ProxyServer(Serializable['ProxyServer'], Loggable):
 
     async def start_server(self):
         server = await asyncio.start_server(
-            self.open_connection,
+            self.serve,
             self.inbox.url.host,
             self.inbox.url.port,
             reuse_address=True,
@@ -56,54 +56,37 @@ class ProxyServer(Serializable['ProxyServer'], Loggable):
         async with server:
             await server.serve_forever()
 
-    async def open_connection(self, reader: asyncio.StreamReader,
-                              writer: asyncio.StreamWriter):
+    async def serve(self, reader: asyncio.StreamReader,
+                    writer: asyncio.StreamWriter):
         try:
             req = await self.inbox.accept_from_tcp(reader, writer)
-            outboxes = self.outbox_dispatcher.dispatch(req.addr[0])
         except Exception as e:
             self.logger.debug('except while accepting: %.60s', e)
             return
-
-        for retry, outbox in enumerate(outboxes):
+        async with req.stream.cm():
             try:
-                self.logger.info('connect(%d) to %s via %s', retry, req,
-                                 outbox)
-                stream = await outbox.connect(req=req)
-                break
+                stream = await self.outbox_dispatcher.connect(req)
             except Exception as e:
-                outbox.weight_decrease()
-                self.logger.debug(
-                    'except while connecting(%d) to %s via %s: %.60s', retry,
-                    req, outbox, e)
-        else:
-            self.logger.debug('failed to connect to %s', req)
-            await req.stream.ensure_closed()
-            return
+                self.logger.debug('except while connecting to %s: %.60s', req,
+                                  e)
+                return
+            async with stream.cm():
+                try:
+                    await self.proxy(req.stream, stream)
+                except Exception:
+                    pass
 
-        try:
-            outbox.weight_increase()
-            await self.stream_proxy(req.stream, stream)
-        except Exception:
-            pass
-
-    async def stream_proxy(self, s1: Stream, s2: Stream):
+    async def proxy(self, s1: Stream, s2: Stream):
         tasks = (
             asyncio.create_task(s1.write_stream(s2)),
             asyncio.create_task(s2.write_stream(s1)),
         )
-
         for task in tasks:
             self.tasks.add(task)
             task.add_done_callback(self.tasks.discard)
-
         try:
             await asyncio.gather(*tasks)
         except Exception:
             pass
-
         for task in tasks:
             task.cancel()
-
-        for s in (s1, s2):
-            await s.ensure_closed()

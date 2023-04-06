@@ -90,8 +90,7 @@ class VmessConnector(ProxyConnector):
         buf = struct.pack('!H', len(buf)) + buf
         req = auth + req + buf
         next_stream = await self.next_layer.connect(rest=req)
-
-        try:
+        async with next_stream.cm(exc_only=True):
             buf = await next_stream.readexactly(4)
             cipher = Cipher(AES(rkey), CFB(riv))
             decryptor = cipher.decryptor()
@@ -103,6 +102,3 @@ class VmessConnector(ProxyConnector):
                 read_decryptor=read_decryptor,
                 next_layer=next_stream,
             )
-        except Exception:
-            await next_stream.ensure_closed()
-            raise

@@ -17,14 +17,10 @@ class HTTPConnector(ProxyConnector):
         host = '{}:{}'.format(addr, port)
         req = self.REQ_FORMAT.format(host, host)
         stream = await self.next_layer.connect(rest=req.encode())
-
-        try:
+        async with stream.cm(exc_only=True):
             headers = await stream.readuntil(b'\r\n\r\n', strip=True)
             if not headers.startswith(b'HTTP/1.1 200'):
                 raise RuntimeError('invalid http response')
             if len(rest) != 0:
                 await stream.writeall(rest)
             return stream
-        except Exception:
-            await stream.ensure_closed()
-            raise

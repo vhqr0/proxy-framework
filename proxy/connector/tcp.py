@@ -27,11 +27,7 @@ class TCPConnector(Connector):
             **self.tcp_extra_kwargs,
         )
         stream = TCPStream(reader, writer)
-
-        try:
+        async with stream.cm(exc_only=True):
             if len(rest) != 0:
                 await stream.writeall(rest)
             return stream
-        except Exception:
-            await stream.ensure_closed()
-            raise

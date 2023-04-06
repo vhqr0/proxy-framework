@@ -31,8 +31,7 @@ class WSAcceptor(Acceptor):
     async def accept(self) -> Stream:
         assert self.next_layer is not None
         next_stream = await self.next_layer.accept()
-
-        try:
+        async with next_stream.cm(exc_only=True):
             buf = await next_stream.readuntil(b'\r\n\r\n', strip=True)
             headers = buf.decode()
             req_match = self.http_req_re.search(headers)
@@ -48,6 +47,3 @@ class WSAcceptor(Acceptor):
             await next_stream.writeall(res.encode())
             self.path, self.host = path, host
             return WSStream(mask_payload=False, next_layer=next_stream)
-        except Exception:
-            await next_stream.ensure_closed()
-            raise
