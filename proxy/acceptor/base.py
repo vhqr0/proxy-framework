@@ -10,4 +10,3 @@ class Acceptor(MultiLayer['Acceptor'], Loggable):
 
 class ProxyAcceptor(Acceptor):
     addr: tuple[str, int]
-    rest: bytes

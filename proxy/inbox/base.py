@@ -3,7 +3,7 @@ import ssl
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from ..acceptor import Acceptor, TCPAcceptor
+from ..acceptor import Acceptor, ProxyAcceptor, TCPAcceptor
 from ..common import Loggable, MappedSerializable, override
 from ..defaults import (INBOX_URL, TLS_INBOX_CERT_FILE, TLS_INBOX_KEY_FILE,
                         TLS_INBOX_KEY_PWD)
@@ -19,6 +19,17 @@ class Request:
 
     def __str__(self):
         return f'<{self.addr[0]} {self.addr[1]} {len(self.rest)}B>'
+
+    @classmethod
+    async def from_acceptor(cls, acceptor: ProxyAcceptor) -> 'Request':
+        stream = await acceptor.accept()
+        addr = acceptor.addr
+        rest = stream.pop()
+        return cls(stream=stream, addr=addr, rest=rest)
+
+    async def ensure_rest(self):
+        if len(self.rest) == 0:
+            self.rest = await self.stream.readatleast(1)
 
 
 class Inbox(MappedSerializable['Inbox'], Loggable):
@@ -66,8 +77,8 @@ class Inbox(MappedSerializable['Inbox'], Loggable):
 
     async def accept(self, next_acceptor: Acceptor) -> Request:
         req = await self.accept_primitive(next_acceptor=next_acceptor)
-        if self.ensure_rest and len(req.rest) == 0:
-            req.rest = await req.stream.readatleast(1)
+        if self.ensure_rest:
+            await req.ensure_rest()
         return req
 
     async def accept_primitive(self, next_acceptor: Acceptor) -> Request:

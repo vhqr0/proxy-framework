@@ -16,5 +16,4 @@ class TrojanInbox(TLSCtxInbox):
     @override(TLSCtxInbox)
     async def accept_primitive(self, next_acceptor: Acceptor) -> Request:
         acceptor = TrojanAcceptor(auth=self.auth, next_layer=next_acceptor)
-        stream = await acceptor.accept()
-        return Request(stream=stream, addr=acceptor.addr, rest=acceptor.rest)
+        return await Request.from_acceptor(acceptor=acceptor)

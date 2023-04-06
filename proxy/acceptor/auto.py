@@ -7,7 +7,7 @@ from ..stream import Stream
 from .base import ProxyAcceptor
 
 
-class HTTPAcceptor(ProxyAcceptor):
+class HTTPOrSocks5Acceptor(ProxyAcceptor):
     HTTP_RES_FORMAT = ('{} 200 Connection Established\r\n'
                        'Connection: close\r\n\r\n')
     HTTP_REQ_RE = r'^(\w+) [^ ]+ (HTTP/[^ \r\n]+)\r\n'
@@ -54,11 +54,10 @@ class HTTPAcceptor(ProxyAcceptor):
         if ver != 5 or cmd != 1 or rsv != 0:
             raise RuntimeError('invalid socks5 header')
         await stream.writeall(b'\x05\x00\x00\x01\x00\x00\x00\x00\x00\x00')
-        self.addr, self.rest = (addr, port), b''
+        self.addr = addr, port
 
     async def dispatch_http(self, stream: Stream):
         buf = await stream.readuntil(b'\r\n\r\n', strip=True)
-        rest = stream.pop()
         headers = buf.decode()
         req_match = self.http_req_re.search(headers)
         host_match = self.http_host_re.search(headers)
@@ -75,5 +74,5 @@ class HTTPAcceptor(ProxyAcceptor):
         else:
             headers = '\r\n'.join(header for header in headers.split('\r\n')
                                   if not header.startswith('Proxy-'))
-            rest = headers.encode() + b'\r\n\r\n' + rest
-        self.addr, self.rest = (addr, port), rest
+            stream.push(headers.encode() + b'\r\n\r\n')
+        self.addr = addr, port

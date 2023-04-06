@@ -13,7 +13,7 @@ class TrojanAcceptor(ProxyAcceptor):
 
     def __init__(self, auth: bytes, **kwargs):
         super().__init__(**kwargs)
-        assert len(auth) == 56  # hex digest of sha224
+        assert len(auth) == 56
         self.auth = auth
 
     @override(ProxyAcceptor)
@@ -21,28 +21,24 @@ class TrojanAcceptor(ProxyAcceptor):
         assert self.next_layer is not None
         stream = await self.next_layer.accept()
         async with stream.cm(exc_only=True):
-            buf = await stream.readatleast(60)
-            if buf[59] == 3:  # domain
-                alen = buf[60]
-                buf, rest = buf[:65 + alen], buf[65 + alen:]
-                auth, crlf1, cmd, _, _, addr_bytes, port, crlf2 = \
-                    struct.unpack(f'!56s2sBBB{alen}sH2s', buf)
+            buf = await stream.readuntil(b'\r\n', strip=True)
+            if buf != self.auth:
+                raise RuntimeError('invalid trojan auth')
+            buf = await stream.readuntil(b'\r\n', strip=True)
+            if buf[1] == 3:  # domain
+                alen = buf[2]
+                cmd, _, _, addr_bytes, port = struct.unpack(
+                    f'!BBB{alen}sH', buf)
                 addr = addr_bytes.decode()
-            elif buf[59] == 1:  # ipv4
-                buf, rest = buf[:68], buf[68:]
-                auth, crlf1, cmd, _, addr_bytes, port, crlf2 = struct.unpack(
-                    '!56s2sBB4sH2s', buf)
+            elif buf[1] == 1:  # ipv4
+                cmd, _, addr_bytes, port = struct.unpack('!BB4sH', buf)
                 addr = socket.inet_ntop(socket.AF_INET, addr_bytes)
-            elif buf[59] == 4:  # ipv6
-                buf, rest = buf[:80], buf[80:]
-                auth, crlf1, cmd, _, addr_bytes, port, crlf2 = struct.unpack(
-                    '!56s2sBB16sH2s', buf)
+            elif buf[1] == 4:  # ipv6
+                cmd, _, addr_bytes, port = struct.unpack('!BB16sH', buf)
                 addr = socket.inet_ntop(socket.AF_INET6, addr_bytes)
             else:
                 raise RuntimeError('invalid trojan header')
-            if cmd != 1 or crlf1 != b'\r\n' or crlf2 != b'\r\n':
+            if cmd != 1:
                 raise RuntimeError('invalid trojan header')
-            if auth != self.auth:
-                raise RuntimeError('invalid trojan auth')
-            self.addr, self.rest = (addr, port), rest
+            self.addr = addr, port
             return stream

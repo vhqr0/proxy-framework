@@ -1,6 +1,6 @@
 # flake8: noqa
+from .auto import HTTPOrSocks5Acceptor
 from .base import Acceptor, ProxyAcceptor
-from .http import HTTPAcceptor
 from .tcp import TCPAcceptor
 from .trojan import TrojanAcceptor
 from .wrap import WrapAcceptor
