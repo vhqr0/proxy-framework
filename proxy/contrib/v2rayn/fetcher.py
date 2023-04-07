@@ -32,42 +32,58 @@ class V2rayNFetcher(Fetcher):
 
         outboxes = list()
         for url in urls:
-            url_match = self.url_re.match(url)
-            if url_match is None or url_match[1] != 'vmess':
-                continue
-            content = base64.decodebytes(url_match[2].encode()).decode()
-            data = json.loads(content)
-            if data['type'] != 'none':
-                continue
-            if data['net'] == 'tcp':
-                if data['tls'] == '':
+            try:
+                url_match = self.url_re.match(url)
+                if url_match is None:
+                    self.logger.warning('invalid url: %s', url)
+                    continue
+                if url_match[1] != 'vmess':
+                    self.logger.warning('invalid scheme: %s', url_match[1])
+                    continue
+                content = base64.decodebytes(url_match[2].encode()).decode()
+                data = json.loads(content)
+                if data['type'] != 'none':
+                    self.logger.warning('invalid type: %s', data['type'])
+                    continue
+                if data['net'] == 'tcp' and data['tls'] == '':
                     net = 'tcp'
-                else:
+                elif data['net'] == 'tcp' and data['tls'] == 'tls':
                     net = 'tls'
-            elif data['net'] == 'ws':
-                if data['tls'] == '':
+                elif data['net'] == 'ws' and data['tls'] == '':
                     net = 'ws'
-                else:
+                elif data['net'] == 'ws' and data['tls'] == 'tls':
                     net = 'wss'
-            else:
-                continue
-            url = str(
-                URL.build(
-                    scheme='vmess',
-                    host=data['add'],
-                    port=data['port'],
-                ))
-            outboxes.append(
-                Outbox.from_dict({
-                    'scheme': 'vmess',
-                    'url': url,
-                    'name': data['ps'],
-                    'fetcher': self.name,
-                    'net': net,
-                    'ws_path': data['path'] or '/',
-                    'ws_host': data['host'] or data['add'],
-                    'tls_host': data.get('sni') or data['add'],
-                    'userid': data['id'],
-                }))
+                else:
+                    self.logger.warning('invalid net: %s %s', data['net'],
+                                        data['tls'])
+                    continue
+                outboxes.append(
+                    Outbox.from_dict({
+                        'scheme':
+                        'vmess',
+                        'url':
+                        str(
+                            URL.build(
+                                scheme='vmess',
+                                host=data['add'],
+                                port=data['port'],
+                            )),
+                        'name':
+                        data['ps'],
+                        'fetcher':
+                        self.name,
+                        'net':
+                        net,
+                        'ws_path':
+                        data['path'] or '/',
+                        'ws_host':
+                        data['host'] or data['add'],
+                        'tls_host':
+                        data.get('sni') or data['add'],
+                        'userid':
+                        data['id'],
+                    }))
+            except Exception as e:
+                self.logger.warning('except while fetching %s: %s', url, e)
 
         return outboxes

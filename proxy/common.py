@@ -26,6 +26,7 @@ class Loggable:
 
     def __init_subclass__(cls, **kwargs):
         cls.logger = logging.getLogger(cls.__name__)
+        super().__init_subclass__(**kwargs)
 
     def __init__(self, **kwargs):
         for k in kwargs:
@@ -54,6 +55,7 @@ class MappedSerializable(Serializable[Scheme]):
             cls.scheme_map = dict()
         if hasattr(cls, 'scheme'):
             cls.scheme_map[cls.scheme] = cls
+        super().__init_subclass__(**kwargs)
 
     @override(Serializable)
     def to_dict(self) -> dict[str, Any]:
