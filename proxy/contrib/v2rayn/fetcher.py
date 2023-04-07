@@ -51,8 +51,6 @@ class V2rayNFetcher(Fetcher):
                     net = 'wss'
             else:
                 continue
-            if net in ('tls', 'wss'):
-                continue
             url = str(
                 URL.build(
                     scheme='vmess',
@@ -65,10 +63,11 @@ class V2rayNFetcher(Fetcher):
                     'url': url,
                     'name': data['ps'],
                     'fetcher': self.name,
-                    'userid': data['id'],
                     'net': net,
-                    'ws_host': data['host'] or data['add'],
                     'ws_path': data['path'] or '/',
+                    'ws_host': data['host'] or data['add'],
+                    'tls_host': data.get('sni') or data['add'],
+                    'userid': data['id'],
                 }))
 
         return outboxes
