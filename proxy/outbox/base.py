@@ -43,8 +43,7 @@ class Outbox(MappedSerializable['Outbox'], Loggable):
         return f'<{self.name} {self.weight}W>'
 
     def summary(self) -> str:
-        return (f'{self.fetcher}\t{self.scheme}://{self.name}\t'
-                f'{self.weight}W\t{self.delay}')
+        return f'{self.fetcher}\t{self.scheme}://{self}\t{self.delay}'
 
     @override(MappedSerializable)
     def to_dict(self) -> dict[str, Any]:

@@ -37,7 +37,21 @@ class V2rayNFetcher(Fetcher):
                 continue
             content = base64.decodebytes(url_match[2].encode()).decode()
             data = json.loads(content)
-            if data['net'] != 'tcp':
+            if data['type'] != 'none':
+                continue
+            if data['net'] == 'tcp':
+                if data['tls'] == '':
+                    net = 'tcp'
+                else:
+                    net = 'tls'
+            elif data['net'] == 'ws':
+                if data['tls'] == '':
+                    net = 'ws'
+                else:
+                    net = 'wss'
+            else:
+                continue
+            if net in ('tls', 'wss'):
                 continue
             url = str(
                 URL.build(
@@ -52,6 +66,9 @@ class V2rayNFetcher(Fetcher):
                     'name': data['ps'],
                     'fetcher': self.name,
                     'userid': data['id'],
+                    'net': net,
+                    'ws_host': data['host'] or data['add'],
+                    'ws_path': data['path'] or '/',
                 }))
 
         return outboxes

@@ -27,7 +27,7 @@ class WSConnector(Connector):
     @override(Connector)
     async def connect(self, rest: bytes = b'') -> Stream:
         assert self.next_layer is not None
-        key = base64.b64decode(random.randbytes(16)).decode()
+        key = base64.b64encode(random.randbytes(16)).decode()
         req = self.REQ_FORMAT.format(self.path, self.host, key)
         next_stream = await self.next_layer.connect(rest=req.encode())
         async with next_stream.cm(exc_only=True):
