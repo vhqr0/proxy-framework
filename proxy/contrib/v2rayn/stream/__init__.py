@@ -1,2 +1,2 @@
 # flake8: noqa
-from .vmess import CounteredAESGCM, VmessStream
+from .vmess import VmessCounteredAESGCM, VmessStream

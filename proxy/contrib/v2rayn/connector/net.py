@@ -3,6 +3,7 @@ from typing import Any
 
 from proxy.common import override
 from proxy.connector import Connector, TCPConnector, WSConnector
+from proxy.defaults import TLS_OUTBOX_HOST, WS_OUTBOX_HOST, WS_OUTBOX_PATH
 from proxy.stream import Stream
 
 
@@ -16,9 +17,9 @@ class V2rayNNetConnector(Connector):
     def __init__(self,
                  addr: tuple[str, int],
                  net: str = 'tcp',
-                 ws_path: str = '/',
-                 ws_host: str = 'localhost',
-                 tls_host: str = 'localhost',
+                 ws_path: str = WS_OUTBOX_PATH,
+                 ws_host: str = WS_OUTBOX_HOST,
+                 tls_host: str = TLS_OUTBOX_HOST,
                  **kwargs):
         super().__init__(**kwargs)
         self.addr = addr

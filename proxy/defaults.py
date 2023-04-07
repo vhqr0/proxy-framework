@@ -11,6 +11,9 @@ TLS_INBOX_KEY_PWD = ''
 TLS_OUTBOX_CERT_FILE = 'cert.pem'
 TLS_OUTBOX_HOST = 'localhost'
 
+WS_OUTBOX_PATH = '/'
+WS_OUTBOX_HOST = 'localhost'
+
 RULES_DEFAULT = 'direct'
 RULES_FILE = 'rules.txt'
 

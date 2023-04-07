@@ -13,7 +13,7 @@ from proxy.common import override
 from proxy.connector import ProxyConnector
 from proxy.stream import Stream
 
-from ..stream import CounteredAESGCM, VmessStream
+from ..stream import VmessCounteredAESGCM, VmessStream
 
 
 def fnv32a(buf: bytes) -> bytes:
@@ -44,8 +44,8 @@ class VmessConnector(ProxyConnector):
         rv = random.getrandbits(8)
         rkey = md5(key).digest()
         riv = md5(iv).digest()
-        write_encryptor = CounteredAESGCM(key, iv[2:12])
-        read_decryptor = CounteredAESGCM(rkey, riv[2:12])
+        write_encryptor = VmessCounteredAESGCM(key, iv[2:12])
+        read_decryptor = VmessCounteredAESGCM(rkey, riv[2:12])
         ts = struct.pack('!Q', int(time.time()))
         addr, port = self.addr
         addr_bytes = addr.encode()

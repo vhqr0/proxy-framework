@@ -2,6 +2,7 @@ import base64
 import random
 
 from ..common import override
+from ..defaults import WS_OUTBOX_HOST, WS_OUTBOX_PATH
 from ..stream import Stream, WSStream
 from .base import Connector
 
@@ -19,7 +20,10 @@ class WSConnector(Connector):
 
     ensure_next_layer = True
 
-    def __init__(self, path: str = '/', host: str = 'localhost', **kwargs):
+    def __init__(self,
+                 path: str = WS_OUTBOX_PATH,
+                 host: str = WS_OUTBOX_HOST,
+                 **kwargs):
         super().__init__(**kwargs)
         self.path = path
         self.host = host

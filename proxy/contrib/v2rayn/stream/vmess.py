@@ -6,7 +6,7 @@ from proxy.common import override
 from proxy.stream import Stream
 
 
-class CounteredAESGCM:
+class VmessCounteredAESGCM:
     aesgcm: AESGCM
     iv: bytes
     count: int
@@ -30,11 +30,11 @@ class CounteredAESGCM:
 
 
 class VmessStream(Stream):
-    write_encryptor: CounteredAESGCM
-    read_decryptor: CounteredAESGCM
+    write_encryptor: VmessCounteredAESGCM
+    read_decryptor: VmessCounteredAESGCM
 
-    def __init__(self, write_encryptor: CounteredAESGCM,
-                 read_decryptor: CounteredAESGCM, **kwargs):
+    def __init__(self, write_encryptor: VmessCounteredAESGCM,
+                 read_decryptor: VmessCounteredAESGCM, **kwargs):
         super().__init__(**kwargs)
         self.write_encryptor = write_encryptor
         self.read_decryptor = read_decryptor
