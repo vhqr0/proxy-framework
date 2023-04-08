@@ -3,7 +3,7 @@ import ssl
 from timeit import timeit
 from typing import Any, Optional
 
-from ..common import Loggable, MappedSerializable, override
+from ..common import DispatchedSerializable, Loggable, override
 from ..defaults import (TLS_OUTBOX_CERT_FILE, TLS_OUTBOX_HOST,
                         WEIGHT_DECREASE_STEP, WEIGHT_INCREASE_STEP,
                         WEIGHT_INITIAL, WEIGHT_MAXIMAL, WEIGHT_MINIMAL)
@@ -12,7 +12,7 @@ from ..request import Request
 from ..stream import Stream
 
 
-class Outbox(MappedSerializable['Outbox'], Loggable):
+class Outbox(DispatchedSerializable['Outbox'], Loggable):
     url: DefaultURL
     name: str
     weight: float
@@ -45,7 +45,7 @@ class Outbox(MappedSerializable['Outbox'], Loggable):
     def summary(self) -> str:
         return f'{self.fetcher}\t{self.scheme}://{self}\t{self.delay}'
 
-    @override(MappedSerializable)
+    @override(DispatchedSerializable)
     def to_dict(self) -> dict[str, Any]:
         obj = super().to_dict()
         obj['url'] = str(self.url)
@@ -56,7 +56,7 @@ class Outbox(MappedSerializable['Outbox'], Loggable):
         return obj
 
     @classmethod
-    @override(MappedSerializable)
+    @override(DispatchedSerializable)
     def scheme_from_dict(cls, obj: dict[str, Any]) -> str:
         if 'scheme' in obj:
             return super().scheme_from_dict(obj)
@@ -64,7 +64,7 @@ class Outbox(MappedSerializable['Outbox'], Loggable):
         return url.scheme
 
     @classmethod
-    @override(MappedSerializable)
+    @override(DispatchedSerializable)
     def kwargs_from_dict(cls, obj: dict[str, Any]) -> dict[str, Any]:
         kwargs = super().kwargs_from_dict(obj)
         kwargs['url'] = obj.get('url') or ''

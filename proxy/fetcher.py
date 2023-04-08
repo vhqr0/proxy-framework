@@ -1,10 +1,10 @@
 from typing import Any
 
-from .common import Loggable, MappedSerializable, override
+from .common import DispatchedSerializable, Loggable, override
 from .outbox import Outbox
 
 
-class Fetcher(MappedSerializable['Fetcher'], Loggable):
+class Fetcher(DispatchedSerializable['Fetcher'], Loggable):
     url: str
     name: str
 
@@ -16,7 +16,7 @@ class Fetcher(MappedSerializable['Fetcher'], Loggable):
     def __str__(self) -> str:
         return f'<{self.scheme}://{self.name}>'
 
-    @override(MappedSerializable)
+    @override(DispatchedSerializable)
     def to_dict(self) -> dict[str, Any]:
         obj = super().to_dict()
         obj['url'] = self.url
@@ -24,7 +24,7 @@ class Fetcher(MappedSerializable['Fetcher'], Loggable):
         return obj
 
     @classmethod
-    @override(MappedSerializable)
+    @override(DispatchedSerializable)
     def kwargs_from_dict(cls, obj: dict[str, Any]) -> dict[str, Any]:
         kwargs = super().kwargs_from_dict(obj)
         kwargs['url'] = obj['url']

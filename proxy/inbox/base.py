@@ -3,14 +3,14 @@ import ssl
 from typing import Any, Optional
 
 from ..acceptor import Acceptor, TCPAcceptor
-from ..common import Loggable, MappedSerializable, override
+from ..common import DispatchedSerializable, Loggable, override
 from ..defaults import (INBOX_URL, TLS_INBOX_CERT_FILE, TLS_INBOX_KEY_FILE,
                         TLS_INBOX_KEY_PWD)
 from ..defaulturl import DefaultURL, InboxDefaultURL
 from ..request import Request
 
 
-class Inbox(MappedSerializable['Inbox'], Loggable):
+class Inbox(DispatchedSerializable['Inbox'], Loggable):
     url: DefaultURL
     tcp_extra_kwargs: dict[str, Any]
 
@@ -27,14 +27,14 @@ class Inbox(MappedSerializable['Inbox'], Loggable):
         self.tcp_extra_kwargs = tcp_extra_kwargs \
             if tcp_extra_kwargs is not None else dict()
 
-    @override(MappedSerializable)
+    @override(DispatchedSerializable)
     def to_dict(self) -> dict[str, Any]:
         obj = super().to_dict()
         obj['url'] = str(self.url)
         return obj
 
     @classmethod
-    @override(MappedSerializable)
+    @override(DispatchedSerializable)
     def scheme_from_dict(cls, obj: dict[str, Any]) -> str:
         if 'scheme' in obj:
             return super().scheme_from_dict(obj)
@@ -42,7 +42,7 @@ class Inbox(MappedSerializable['Inbox'], Loggable):
         return url.scheme
 
     @classmethod
-    @override(MappedSerializable)
+    @override(DispatchedSerializable)
     def kwargs_from_dict(cls, obj: dict[str, Any]) -> dict[str, Any]:
         kwargs = super().kwargs_from_dict(obj)
         kwargs['url'] = obj.get('url') or INBOX_URL

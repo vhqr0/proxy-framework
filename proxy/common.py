@@ -56,15 +56,15 @@ class SelfSerializable(Serializable):
 Scheme = TypeVar('Scheme')
 
 
-class MappedSerializable(Generic[Scheme], Serializable):
+class DispatchedSerializable(Generic[Scheme], Serializable):
     scheme: str
-    scheme_map: dict[str, type[Scheme]]
+    scheme_dict: dict[str, type[Scheme]]
 
     def __init_subclass__(cls, **kwargs):
-        if not hasattr(cls, 'scheme_map'):
-            cls.scheme_map = dict()
+        if not hasattr(cls, 'scheme_dict'):
+            cls.scheme_dict = dict()
         if hasattr(cls, 'scheme'):
-            cls.scheme_map[cls.scheme] = cls
+            cls.scheme_dict[cls.scheme] = cls
         super().__init_subclass__(**kwargs)
 
     @override(Serializable)
@@ -75,7 +75,7 @@ class MappedSerializable(Generic[Scheme], Serializable):
     @override(Serializable)
     def from_dict(cls, obj: dict[str, Any]) -> Scheme:
         scheme = cls.scheme_from_dict(obj)
-        scheme_cls = cls.scheme_map[scheme]
+        scheme_cls = cls.scheme_dict[scheme]
         kwargs = scheme_cls.kwargs_from_dict(obj)
         return scheme_cls(**kwargs)
 
