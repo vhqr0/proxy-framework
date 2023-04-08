@@ -29,5 +29,5 @@ class TCPConnector(Connector):
         stream = TCPStream(reader, writer)
         async with stream.cm(exc_only=True):
             if len(rest) != 0:
-                await stream.writeall(rest)
+                await stream.writedrain(rest)
             return stream

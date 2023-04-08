@@ -44,6 +44,6 @@ class WSAcceptor(Acceptor):
             key_hash = sha1((key + self.WS_MAGIC).encode()).digest()
             accept = base64.b64encode(key_hash).decode()
             res = self.WS_RES_FORMAT.format(ver, accept)
-            await next_stream.writeall(res.encode())
+            await next_stream.writedrain(res.encode())
             self.path, self.host = path, host
             return WSStream(mask_payload=False, next_layer=next_stream)

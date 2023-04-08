@@ -22,5 +22,5 @@ class HTTPConnector(ProxyConnector):
             if not headers.startswith(b'HTTP/1.1 200'):
                 raise ProtocolError('http', 'status')
             if len(rest) != 0:
-                await stream.writeall(rest)
+                await stream.writedrain(rest)
             return stream

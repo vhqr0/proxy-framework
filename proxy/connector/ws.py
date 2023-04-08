@@ -40,5 +40,5 @@ class WSConnector(Connector):
                 raise ProtocolError('ws', 'status')
             stream = WSStream(next_layer=next_stream)
             if len(rest) != 0:
-                await stream.writeall(rest)
+                await stream.writedrain(rest)
             return stream
