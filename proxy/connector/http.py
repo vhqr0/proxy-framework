@@ -1,5 +1,5 @@
 from ..common import override
-from ..stream import Stream
+from ..stream import ProtocolError, Stream
 from .base import ProxyConnector
 
 
@@ -20,7 +20,7 @@ class HTTPConnector(ProxyConnector):
         async with stream.cm(exc_only=True):
             headers = await stream.readuntil(b'\r\n\r\n', strip=True)
             if not headers.startswith(b'HTTP/1.1 200'):
-                raise RuntimeError('invalid http response')
+                raise ProtocolError('http', 'status')
             if len(rest) != 0:
                 await stream.writeall(rest)
             return stream

@@ -3,7 +3,7 @@ import re
 from hashlib import sha1
 
 from ..common import override
-from ..stream import Stream, WSStream
+from ..stream import ProtocolError, Stream, WSStream
 from .base import Acceptor
 
 
@@ -38,7 +38,7 @@ class WSAcceptor(Acceptor):
             host_match = self.http_host_re.search(headers)
             key_match = self.ws_key_re.search(headers)
             if req_match is None or host_match is None or key_match is None:
-                raise RuntimeError('invalid http request')
+                raise ProtocolError('ws', 'header')
             path, ver, host, key = \
                 req_match[1], req_match[2], host_match[1], key_match[1]
             key_hash = sha1((key + self.WS_MAGIC).encode()).digest()

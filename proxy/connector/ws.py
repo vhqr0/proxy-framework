@@ -3,7 +3,7 @@ import random
 
 from ..common import override
 from ..defaults import WS_OUTBOX_HOST, WS_OUTBOX_PATH
-from ..stream import Stream, WSStream
+from ..stream import ProtocolError, Stream, WSStream
 from .base import Connector
 
 
@@ -37,7 +37,7 @@ class WSConnector(Connector):
         async with next_stream.cm(exc_only=True):
             headers = await next_stream.readuntil(b'\r\n\r\n', strip=True)
             if not headers.startswith(b'HTTP/1.1 101'):
-                raise RuntimeError('invalid ws response')
+                raise ProtocolError('ws', 'status')
             stream = WSStream(next_layer=next_stream)
             if len(rest) != 0:
                 await stream.writeall(rest)

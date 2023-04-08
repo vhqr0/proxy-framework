@@ -3,7 +3,7 @@ import socket
 import struct
 
 from ..common import override
-from ..stream import Stream
+from ..stream import ProtocolError, Stream
 from .base import ProxyAcceptor
 
 
@@ -35,7 +35,7 @@ class HTTPOrSocks5Acceptor(ProxyAcceptor):
         nmeths = buf[1]
         ver, nmeths, meths = struct.unpack(f'!BB{nmeths}s', buf)
         if ver != 5 or 0 not in meths:
-            raise RuntimeError('invalid socks5 request')
+            raise ProtocolError('socks5', 'auth')
         await stream.writeall(b'\x05\x00')
         buf = await stream.readatleast(4)
         if buf[3] == 3:  # domain
@@ -50,9 +50,9 @@ class HTTPOrSocks5Acceptor(ProxyAcceptor):
                 '!BBBB16sH', buf)
             addr = socket.inet_ntop(socket.AF_INET6, addr_bytes)
         else:
-            raise RuntimeError('invalid socks5 header')
+            raise ProtocolError('socks5', 'header')
         if ver != 5 or cmd != 1 or rsv != 0:
-            raise RuntimeError('invalid socks5 header')
+            raise ProtocolError('socks5', 'header')
         await stream.writeall(b'\x05\x00\x00\x01\x00\x00\x00\x00\x00\x00')
         self.addr = addr, port
 
@@ -62,7 +62,7 @@ class HTTPOrSocks5Acceptor(ProxyAcceptor):
         req_match = self.http_req_re.search(headers)
         host_match = self.http_host_re.search(headers)
         if req_match is None or host_match is None:
-            raise RuntimeError('invalid http request')
+            raise ProtocolError('http', 'header')
         meth, ver, addr = req_match[1], req_match[2], host_match[1]
         assert meth is not None and ver is not None and addr is not None
         port = 80 if host_match[3] is None else int(host_match[3])

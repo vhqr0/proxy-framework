@@ -11,7 +11,7 @@ from cryptography.hazmat.primitives.ciphers.modes import CFB
 
 from proxy.common import override
 from proxy.connector import ProxyConnector
-from proxy.stream import Stream
+from proxy.stream import ProtocolError, Stream
 
 from ..stream import VmessCounteredAESGCM, VmessStream
 
@@ -98,7 +98,7 @@ class VmessConnector(ProxyConnector):
             decryptor = cipher.decryptor()
             buf = decryptor.update(buf) + decryptor.finalize()
             if buf != struct.pack('!BBBB', rv, 0, 0, 0):
-                raise RuntimeError('invalid vmess rv')
+                raise ProtocolError('vmess', 'auth')
             return VmessStream(
                 write_encryptor=write_encryptor,
                 read_decryptor=read_decryptor,

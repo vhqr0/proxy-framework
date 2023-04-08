@@ -18,3 +18,7 @@ class HTTPInbox(HTTPOrSocks5Inbox):
 
 class Socks5Inbox(HTTPOrSocks5Inbox):
     scheme = 'socks5'
+
+
+class Socks5hInbox(HTTPOrSocks5Inbox):
+    scheme = 'socks5h'

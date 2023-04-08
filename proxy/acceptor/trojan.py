@@ -2,7 +2,7 @@ import socket
 import struct
 
 from ..common import override
-from ..stream import Stream
+from ..stream import ProtocolError, Stream
 from .base import ProxyAcceptor
 
 
@@ -23,7 +23,7 @@ class TrojanAcceptor(ProxyAcceptor):
         async with stream.cm(exc_only=True):
             buf = await stream.readuntil(b'\r\n', strip=True)
             if buf != self.auth:
-                raise RuntimeError('invalid trojan auth')
+                raise ProtocolError('trojan', 'auth')
             buf = await stream.readuntil(b'\r\n', strip=True)
             if buf[1] == 3:  # domain
                 alen = buf[2]
@@ -37,8 +37,8 @@ class TrojanAcceptor(ProxyAcceptor):
                 cmd, _, addr_bytes, port = struct.unpack('!BB16sH', buf)
                 addr = socket.inet_ntop(socket.AF_INET6, addr_bytes)
             else:
-                raise RuntimeError('invalid trojan header')
+                raise ProtocolError('trojan', 'header')
             if cmd != 1:
-                raise RuntimeError('invalid trojan header')
+                raise ProtocolError('trojan', 'header')
             self.addr = addr, port
             return stream

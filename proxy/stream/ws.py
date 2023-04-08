@@ -2,7 +2,7 @@ import random
 import struct
 
 from ..common import override
-from .base import Stream
+from .base import ProtocolError, Stream
 
 
 class WSStream(Stream):
@@ -65,4 +65,4 @@ class WSStream(Stream):
             await self.drain()
         if op in (0, 9, 0xa):  # continue/ping/pong
             return await self.read()
-        raise RuntimeError('invalid ws frame type')
+        raise ProtocolError('ws', 'type')

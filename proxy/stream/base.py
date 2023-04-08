@@ -6,6 +6,16 @@ from ..common import Loggable, MultiLayer
 from ..defaults import STREAM_BUFSIZE
 
 
+class ProtocolError(RuntimeError):
+    protocol: str
+    part: str
+
+    def __init__(self, protocol: str, part: str):
+        super().__init__(f'error from protocol {protocol}/{part}')
+        self.protocol = protocol
+        self.part = part
+
+
 class Stream(MultiLayer['Stream'], Loggable):
     to_read: bytes
 
