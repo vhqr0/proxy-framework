@@ -40,6 +40,9 @@ class WSStream(Stream):
     @override(Stream)
     async def read_primitive(self) -> bytes:
         assert self.next_layer is not None
+        buf = await self.next_layer.peek()
+        if len(buf) == 0:
+            return b''
         buf = await self.next_layer.readexactly(2)
         flags, blen = struct.unpack('!BB', buf)
         m, blen = blen & 0x80, blen & 0x7f

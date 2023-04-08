@@ -49,6 +49,9 @@ class VmessStream(Stream):
     @override(Stream)
     async def read_primitive(self) -> bytes:
         assert self.next_layer is not None
+        buf = await self.next_layer.peek()
+        if len(buf) == 0:
+            return b''
         buf = await self.next_layer.readexactly(2)
         blen, = struct.unpack('!H', buf)
         buf = await self.next_layer.readexactly(blen)
