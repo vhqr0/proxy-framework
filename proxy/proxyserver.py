@@ -2,13 +2,14 @@ import asyncio
 from collections.abc import Coroutine
 from typing import Any
 
-from .common import Loggable, Serializable, override
+from typing_extensions import Self
+
+from .common import Loggable, SelfSerializable, override
 from .inbox import Inbox
 from .outboxdispatcher import OutboxDispatcher
-from .stream import Stream
 
 
-class ProxyServer(Serializable['ProxyServer'], Loggable):
+class ProxyServer(SelfSerializable, Loggable):
     tasks: set[asyncio.Task]
     inbox: Inbox
     outbox_dispatcher: OutboxDispatcher
@@ -20,7 +21,7 @@ class ProxyServer(Serializable['ProxyServer'], Loggable):
         self.inbox = inbox
         self.outbox_dispatcher = outbox_dispatcher
 
-    @override(Serializable)
+    @override(SelfSerializable)
     def to_dict(self) -> dict[str, Any]:
         return {
             'inbox': self.inbox.to_dict(),
@@ -28,8 +29,8 @@ class ProxyServer(Serializable['ProxyServer'], Loggable):
         }
 
     @classmethod
-    @override(Serializable)
-    def from_dict(cls, obj: dict[str, Any]) -> 'ProxyServer':
+    @override(SelfSerializable)
+    def from_dict(cls, obj: dict[str, Any]) -> Self:
         inbox = Inbox.from_dict(obj.get('inbox') or dict())
         outbox_dispatcher = OutboxDispatcher.from_dict(
             obj.get('outbox_dispatcher') or dict())
@@ -52,7 +53,7 @@ class ProxyServer(Serializable['ProxyServer'], Loggable):
 
     async def start_server(self):
         server = await asyncio.start_server(
-            self.on_connect,
+            self.connected_cb,
             self.inbox.url.host,
             self.inbox.url.port,
             reuse_address=True,
@@ -63,8 +64,8 @@ class ProxyServer(Serializable['ProxyServer'], Loggable):
         async with server:
             await server.serve_forever()
 
-    def on_connect(self, reader: asyncio.StreamReader,
-                   writer: asyncio.StreamWriter):
+    def connected_cb(self, reader: asyncio.StreamReader,
+                     writer: asyncio.StreamWriter):
         self.create_task(self.serve(reader, writer))
 
     async def serve(self, reader: asyncio.StreamReader,
@@ -74,27 +75,19 @@ class ProxyServer(Serializable['ProxyServer'], Loggable):
         except Exception as e:
             self.logger.debug('except while accepting: %.60s', e)
             return
-        async with req.stream.cm():
+        async with req.stream.cm() as s1:
             try:
                 stream = await self.outbox_dispatcher.connect(req)
             except Exception as e:
                 self.logger.debug('except while connecting to %s: %.60s', req,
                                   e)
                 return
-            async with stream.cm():
+            async with stream.cm() as s2:
+                t1 = self.create_task(s1.write_stream(s2))
+                t2 = self.create_task(s2.write_stream(s1))
                 try:
-                    await self.proxy(req.stream, stream)
+                    await asyncio.gather(t1, t2)
                 except Exception:
                     pass
-
-    async def proxy(self, s1: Stream, s2: Stream):
-        tasks = (
-            self.create_task(s1.write_stream(s2)),
-            self.create_task(s2.write_stream(s1)),
-        )
-        try:
-            await asyncio.gather(*tasks)
-        except Exception:
-            pass
-        for task in tasks:
-            task.cancel()
+                t1.cancel()
+                t2.cancel()

@@ -2,6 +2,8 @@ import logging
 from collections.abc import Callable
 from typing import Any, Generic, Optional, TypeVar
 
+from typing_extensions import Self
+
 Meth = TypeVar('Meth')
 
 
@@ -33,20 +35,28 @@ class Loggable:
             self.logger.debug('unused kwarg: %s', k)
 
 
-Scheme = TypeVar('Scheme')
-
-
-class Serializable(Generic[Scheme]):
+class Serializable:
 
     def to_dict(self) -> dict[str, Any]:
         raise NotImplementedError
 
     @classmethod
-    def from_dict(cls, obj: dict[str, Any]) -> Scheme:
+    def from_dict(cls, obj: dict[str, Any]) -> Any:
         raise NotImplementedError
 
 
-class MappedSerializable(Serializable[Scheme]):
+class SelfSerializable(Serializable):
+
+    @classmethod
+    @override(Serializable)
+    def from_dict(cls, obj: dict[str, Any]) -> Self:
+        raise NotImplementedError
+
+
+Scheme = TypeVar('Scheme')
+
+
+class MappedSerializable(Generic[Scheme], Serializable):
     scheme: str
     scheme_map: dict[str, type[Scheme]]
 

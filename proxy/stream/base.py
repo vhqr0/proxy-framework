@@ -1,6 +1,9 @@
 import asyncio
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Optional
+
+from typing_extensions import Self
 
 from ..common import Loggable, MultiLayer
 from ..defaults import STREAM_BUFSIZE
@@ -24,7 +27,7 @@ class Stream(MultiLayer['Stream'], Loggable):
         self.to_read = b''
 
     @asynccontextmanager
-    async def cm(self, exc_only: bool = False):
+    async def cm(self, exc_only: bool = False) -> AsyncGenerator[Self, None]:
         exc: Optional[BaseException] = None
         try:
             yield self

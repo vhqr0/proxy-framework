@@ -3,7 +3,9 @@ import os.path
 from functools import cache
 from typing import Any, Optional
 
-from .common import Loggable, Serializable, override
+from typing_extensions import Self
+
+from .common import Loggable, SelfSerializable, override
 from .defaults import RULES_DEFAULT, RULES_FILE
 
 
@@ -22,18 +24,18 @@ class Rule(enum.Enum):
         raise KeyError
 
     @classmethod
-    def from_str(cls, s: str) -> 'Rule':
+    def from_str(cls, s: str) -> Self:
         s = s.lower()
         if s == 'block':
-            return cls.Block
+            return cls(cls.Block)
         if s == 'direct':
-            return cls.Direct
+            return cls(cls.Direct)
         if s == 'forward':
-            return cls.Forward
+            return cls(cls.Forward)
         raise ValueError
 
 
-class RuleMatcher(Serializable['RuleMatcher'], Loggable):
+class RuleMatcher(SelfSerializable, Loggable):
     rules_default: Rule
     rules_file: str
     rules: Optional[dict[str, Rule]]
@@ -47,7 +49,7 @@ class RuleMatcher(Serializable['RuleMatcher'], Loggable):
         self.rules_file = rules_file
         self.rules = None
 
-    @override(Serializable)
+    @override(SelfSerializable)
     def to_dict(self) -> dict[str, Any]:
         return {
             'rules_default': str(self.rules_default),
@@ -55,8 +57,8 @@ class RuleMatcher(Serializable['RuleMatcher'], Loggable):
         }
 
     @classmethod
-    @override(Serializable)
-    def from_dict(cls, obj: dict[str, Any]) -> 'RuleMatcher':
+    @override(SelfSerializable)
+    def from_dict(cls, obj: dict[str, Any]) -> Self:
         return cls(rules_default=obj.get('rules_default') or RULES_DEFAULT,
                    rules_file=obj.get('rules_file') or RULES_FILE)
 

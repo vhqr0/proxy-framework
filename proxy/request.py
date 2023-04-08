@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from typing_extensions import Self
+
 from .acceptor import ProxyAcceptor
 from .stream import Stream
 
@@ -14,7 +16,7 @@ class Request:
         return f'<{self.addr[0]} {self.addr[1]} {len(self.rest)}B>'
 
     @classmethod
-    async def from_acceptor(cls, acceptor: ProxyAcceptor) -> 'Request':
+    async def from_acceptor(cls, acceptor: ProxyAcceptor) -> Self:
         stream = await acceptor.accept()
         addr = acceptor.addr
         rest = stream.pop()

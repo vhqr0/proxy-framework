@@ -34,7 +34,7 @@ class V2rayNNetConnector(Connector):
         if self.net in ('tls', 'wss'):
             tls_ctx = ssl.create_default_context()
             tls_ctx.check_hostname = False
-            tls_ctx.verfiy_mode = ssl.CERT_NONE
+            tls_ctx.verify_mode = ssl.CERT_NONE
             tcp_extra_kwargs['ssl'] = tls_ctx
             tcp_extra_kwargs['server_hostname'] = self.tls_host
         connector: Connector
