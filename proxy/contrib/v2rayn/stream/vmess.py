@@ -19,13 +19,13 @@ class VmessCounteredAESGCM:
     def encrypt(self, buf: bytes) -> bytes:
         iv = struct.pack('!H', self.count) + self.iv
         buf = self.aesgcm.encrypt(iv, buf, b'')
-        self.count += 1
+        self.count = (self.count + 1) & 0xffff
         return buf
 
     def decrypt(self, buf: bytes) -> bytes:
         iv = struct.pack('!H', self.count) + self.iv
         buf = self.aesgcm.decrypt(iv, buf, b'')
-        self.count += 1
+        self.count = (self.count + 1) & 0xffff
         return buf
 
 

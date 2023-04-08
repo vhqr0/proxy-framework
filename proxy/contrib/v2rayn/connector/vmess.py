@@ -91,6 +91,7 @@ class VmessConnector(ProxyConnector):
         buf = write_encryptor.encrypt(rest)
         buf = struct.pack('!H', len(buf)) + buf
         req = auth + req + buf
+
         next_stream = await self.next_layer.connect(rest=req)
         async with next_stream.cm(exc_only=True):
             buf = await next_stream.peek()
