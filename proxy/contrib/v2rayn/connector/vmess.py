@@ -93,6 +93,9 @@ class VmessConnector(ProxyConnector):
         req = auth + req + buf
         next_stream = await self.next_layer.connect(rest=req)
         async with next_stream.cm(exc_only=True):
+            buf = await next_stream.peek()
+            if len(buf) == 0:
+                raise ProtocolError('vmess', 'header')
             buf = await next_stream.readexactly(4)
             cipher = Cipher(AES(rkey), CFB(riv))
             decryptor = cipher.decryptor()

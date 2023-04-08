@@ -24,6 +24,7 @@ class TrojanAcceptor(ProxyAcceptor):
             buf = await stream.readuntil(b'\r\n', strip=True)
             if buf != self.auth:
                 raise ProtocolError('trojan', 'auth')
+            # FIXME: \x13\x10(\r\n) may be part of ipv4/ipv6 addr
             buf = await stream.readuntil(b'\r\n', strip=True)
             if buf[1] == 3:  # domain
                 alen = buf[2]
