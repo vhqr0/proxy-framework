@@ -1,4 +1,5 @@
 typing_extensions
 yarl
 cryptography
+pycryptodome
 requests

@@ -13,7 +13,7 @@ from proxy.common import override
 from proxy.connector import ProxyConnector
 from proxy.stream import ProtocolError, Stream
 
-from ..stream import VmessCounteredAESGCM, VmessStream
+from ..stream import VmessCryptor, VmessStream
 
 
 def fnv32a(buf: bytes) -> bytes:
@@ -46,8 +46,8 @@ class VmessConnector(ProxyConnector):
         rv = random.getrandbits(8)
         rkey = md5(key).digest()
         riv = md5(iv).digest()
-        write_encryptor = VmessCounteredAESGCM(key, iv[2:12])
-        read_decryptor = VmessCounteredAESGCM(rkey, riv[2:12])
+        write_encryptor = VmessCryptor(key, iv)
+        read_decryptor = VmessCryptor(rkey, riv)
         ts = struct.pack('!Q', int(time.time()))
         addr, port = self.addr
         addr_bytes = addr.encode()
@@ -58,7 +58,7 @@ class VmessConnector(ProxyConnector):
         # iv(16s)         : iv
         # key(16s)        : key
         # rv(B)           : rv
-        # opts(B)         : 1
+        # opts(B)         : 5
         # plen|secmeth(B) : plen|3
         # res(B)          : 0
         # cmd(B)          : 1
@@ -73,7 +73,7 @@ class VmessConnector(ProxyConnector):
             iv,
             key,
             rv,
-            1,
+            5,
             (plen << 4) + 3,
             0,
             1,
@@ -89,7 +89,6 @@ class VmessConnector(ProxyConnector):
         req = encryptor.update(req) + encryptor.finalize()
         auth = HMAC(key=self.userid.bytes, msg=ts, digestmod='md5').digest()
         buf = write_encryptor.encrypt(rest)
-        buf = struct.pack('!H', len(buf)) + buf
         req = auth + req + buf
 
         next_stream = await self.next_layer.connect(rest=req)
@@ -101,8 +100,13 @@ class VmessConnector(ProxyConnector):
             cipher = Cipher(AES(rkey), CFB(riv))
             decryptor = cipher.decryptor()
             buf = decryptor.update(buf) + decryptor.finalize()
-            if buf != struct.pack('!BBBB', rv, 0, 0, 0):
+            rrv, opt, cmd, clen = struct.unpack('!BBBB', buf)
+            if rrv != rv:
                 raise ProtocolError('vmess', 'auth')
+            if opt != 0:
+                raise ProtocolError('vmess', 'opt')
+            if cmd != 0 or clen != 0:
+                raise ProtocolError('vmess', 'cmd')
             return VmessStream(
                 write_encryptor=write_encryptor,
                 read_decryptor=read_decryptor,
