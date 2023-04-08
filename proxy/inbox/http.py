@@ -1,6 +1,7 @@
 from ..acceptor import Acceptor, HTTPOrSocks5Acceptor
 from ..common import override
-from .base import Inbox, Request
+from ..request import Request
+from .base import Inbox
 
 
 class HTTPOrSocks5Inbox(Inbox):

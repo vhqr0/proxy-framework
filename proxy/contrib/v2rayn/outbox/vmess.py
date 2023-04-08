@@ -9,12 +9,12 @@ from typing import Any
 from uuid import UUID
 
 from proxy.common import override
-from proxy.inbox import Request
 from proxy.outbox import Outbox
+from proxy.request import Request
 from proxy.stream import Stream
 
 from ..connector import V2rayNNetConnector, VmessConnector
-from .base import V2rayNNetCtxOutbox
+from .net import V2rayNNetCtxOutbox
 
 
 class VmessOutbox(V2rayNNetCtxOutbox):

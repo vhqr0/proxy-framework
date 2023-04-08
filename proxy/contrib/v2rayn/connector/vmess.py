@@ -37,7 +37,9 @@ class VmessConnector(ProxyConnector):
     @override(ProxyConnector)
     async def connect(self, rest: bytes = b'') -> Stream:
         assert self.next_layer is not None
-        assert len(rest) != 0
+
+        if len(rest) == 0:
+            raise ValueError('rest cannot be empty')
 
         key = random.randbytes(16)
         iv = random.randbytes(16)

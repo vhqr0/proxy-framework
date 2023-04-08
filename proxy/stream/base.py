@@ -53,6 +53,8 @@ class Stream(MultiLayer['Stream'], Loggable):
     def write(self, buf: bytes):
         if len(buf) != 0:
             self.write_primitive(buf)
+        else:
+            self.logger.debug('write empty bytes')
 
     async def drain(self):
         if self.next_layer is not None:

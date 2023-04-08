@@ -4,8 +4,8 @@ from typing import Any, Optional
 from .common import Loggable, Serializable, override
 from .defaults import CONNECT_RETRY
 from .fetcher import Fetcher
-from .inbox import Request
 from .outbox import NULLOutbox, Outbox, TCPOutbox
+from .request import Request
 from .rulematcher import Rule, RuleMatcher
 from .stream import Stream
 

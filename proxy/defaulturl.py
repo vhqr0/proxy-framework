@@ -26,27 +26,23 @@ class DefaultURL:
 
     @property
     def scheme(self) -> str:
-        return self.override.scheme or self.default.scheme
+        return self.override.scheme or self.default.scheme or 'http'
 
     @property
     def host(self) -> str:
-        assert self.default.host is not None
-        return self.override.host or self.default.host
+        return self.override.host or self.default.host or ''
 
     @property
     def port(self) -> int:
-        assert self.default.port is not None
-        return self.override.port or self.default.port
+        return self.override.port or self.default.port or 0
 
     @property
     def user(self) -> str:
-        assert self.default.user is not None
-        return self.override.user or self.default.user
+        return self.override.user or self.default.user or ''
 
     @property
     def pwd(self) -> str:
-        assert self.default.password is not None
-        return self.override.password or self.default.password
+        return self.override.password or self.default.password or ''
 
 
 class InboxDefaultURL(DefaultURL):

@@ -32,7 +32,10 @@ class V2rayNNetConnector(Connector):
     async def connect(self, rest: bytes = b'') -> Stream:
         tcp_extra_kwargs: dict[str, Any] = dict()
         if self.net in ('tls', 'wss'):
-            tcp_extra_kwargs['ssl'] = ssl.create_default_context()
+            tls_ctx = ssl.create_default_context()
+            tls_ctx.check_hostname = False
+            tls_ctx.verfiy_mode = ssl.CERT_NONE
+            tcp_extra_kwargs['ssl'] = tls_ctx
             tcp_extra_kwargs['server_hostname'] = self.tls_host
         connector: Connector
         connector = TCPConnector(

@@ -3,7 +3,7 @@ from hashlib import sha224
 
 from ..common import override
 from ..connector import TCPConnector, TrojanConnector
-from ..inbox import Request
+from ..request import Request
 from ..stream import Stream
 from .base import TLSCtxOutbox
 

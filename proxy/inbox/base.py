@@ -1,35 +1,13 @@
 import asyncio
 import ssl
-from dataclasses import dataclass
 from typing import Any, Optional
 
-from ..acceptor import Acceptor, ProxyAcceptor, TCPAcceptor
+from ..acceptor import Acceptor, TCPAcceptor
 from ..common import Loggable, MappedSerializable, override
 from ..defaults import (INBOX_URL, TLS_INBOX_CERT_FILE, TLS_INBOX_KEY_FILE,
                         TLS_INBOX_KEY_PWD)
 from ..defaulturl import DefaultURL, InboxDefaultURL
-from ..stream import Stream
-
-
-@dataclass
-class Request:
-    stream: Stream
-    addr: tuple[str, int]
-    rest: bytes
-
-    def __str__(self):
-        return f'<{self.addr[0]} {self.addr[1]} {len(self.rest)}B>'
-
-    @classmethod
-    async def from_acceptor(cls, acceptor: ProxyAcceptor) -> 'Request':
-        stream = await acceptor.accept()
-        addr = acceptor.addr
-        rest = stream.pop()
-        return cls(stream=stream, addr=addr, rest=rest)
-
-    async def ensure_rest(self):
-        if len(self.rest) == 0:
-            self.rest = await self.stream.readatleast(1)
+from ..request import Request
 
 
 class Inbox(MappedSerializable['Inbox'], Loggable):

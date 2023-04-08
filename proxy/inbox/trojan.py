@@ -3,7 +3,8 @@ from hashlib import sha224
 
 from ..acceptor import Acceptor, TrojanAcceptor
 from ..common import override
-from .base import Request, TLSCtxInbox
+from ..request import Request
+from .base import TLSCtxInbox
 
 
 class TrojanInbox(TLSCtxInbox):

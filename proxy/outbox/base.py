@@ -8,7 +8,7 @@ from ..defaults import (TLS_OUTBOX_CERT_FILE, TLS_OUTBOX_HOST,
                         WEIGHT_DECREASE_STEP, WEIGHT_INCREASE_STEP,
                         WEIGHT_INITIAL, WEIGHT_MAXIMAL, WEIGHT_MINIMAL)
 from ..defaulturl import DefaultURL, OutboxDefaultURL
-from ..inbox import Request
+from ..request import Request
 from ..stream import Stream
 
 

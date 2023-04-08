@@ -1,6 +1,6 @@
 from ..common import override
 from ..connector import NULLConnector
-from ..inbox import Request
+from ..request import Request
 from ..stream import Stream
 from .base import Outbox
 
