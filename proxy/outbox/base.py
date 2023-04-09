@@ -1,5 +1,6 @@
 import socket
 import ssl
+from abc import ABC, abstractmethod
 from timeit import timeit
 from typing import Any, Optional
 
@@ -12,7 +13,7 @@ from ..request import Request
 from ..stream import Stream
 
 
-class Outbox(DispatchedSerializable['Outbox'], Loggable):
+class Outbox(DispatchedSerializable['Outbox'], Loggable, ABC):
     url: DefaultURL
     name: str
     weight: float
@@ -93,6 +94,7 @@ class Outbox(DispatchedSerializable['Outbox'], Loggable):
         except Exception:
             pass
 
+    @abstractmethod
     async def connect(self, req: Request) -> Stream:
         raise NotImplementedError
 

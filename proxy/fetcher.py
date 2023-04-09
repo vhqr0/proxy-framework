@@ -1,10 +1,11 @@
+from abc import ABC, abstractmethod
 from typing import Any
 
 from .common import DispatchedSerializable, Loggable, override
 from .outbox import Outbox
 
 
-class Fetcher(DispatchedSerializable['Fetcher'], Loggable):
+class Fetcher(DispatchedSerializable['Fetcher'], Loggable, ABC):
     url: str
     name: str
 
@@ -31,5 +32,6 @@ class Fetcher(DispatchedSerializable['Fetcher'], Loggable):
         kwargs['name'] = obj['name']
         return kwargs
 
+    @abstractmethod
     def fetch(self) -> list[Outbox]:
         raise NotImplementedError

@@ -3,8 +3,8 @@ import struct
 
 from ..common import override
 from ..stream import ProtocolError, Stream
-from .base import ProxyAcceptor
 from .auto import Socks5Atype
+from .base import ProxyAcceptor
 
 
 class TrojanAcceptor(ProxyAcceptor):

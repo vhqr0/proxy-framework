@@ -1,9 +1,12 @@
+from abc import ABC, abstractmethod
+
 from ..common import Loggable, MultiLayer
 from ..stream import Stream
 
 
-class Connector(MultiLayer['Connector'], Loggable):
+class Connector(MultiLayer['Connector'], Loggable, ABC):
 
+    @abstractmethod
     async def connect(self, rest: bytes = b'') -> Stream:
         raise NotImplementedError
 

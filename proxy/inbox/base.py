@@ -1,5 +1,6 @@
 import asyncio
 import ssl
+from abc import ABC, abstractmethod
 from typing import Any, Optional
 
 from ..acceptor import Acceptor, TCPAcceptor
@@ -10,7 +11,7 @@ from ..defaulturl import DefaultURL, InboxDefaultURL
 from ..request import Request
 
 
-class Inbox(DispatchedSerializable['Inbox'], Loggable):
+class Inbox(DispatchedSerializable['Inbox'], Loggable, ABC):
     url: DefaultURL
     tcp_extra_kwargs: dict[str, Any]
 
@@ -59,6 +60,7 @@ class Inbox(DispatchedSerializable['Inbox'], Loggable):
             await req.ensure_rest()
         return req
 
+    @abstractmethod
     async def accept_primitive(self, next_acceptor: Acceptor) -> Request:
         raise NotImplementedError
 

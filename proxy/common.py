@@ -1,4 +1,5 @@
 import logging
+from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any, Generic, Optional, TypeVar
 
@@ -35,19 +36,22 @@ class Loggable:
             self.logger.debug('unused kwarg: %s', k)
 
 
-class Serializable:
+class Serializable(ABC):
 
+    @abstractmethod
     def to_dict(self) -> dict[str, Any]:
         raise NotImplementedError
 
     @classmethod
+    @abstractmethod
     def from_dict(cls, obj: dict[str, Any]) -> Any:
         raise NotImplementedError
 
 
-class SelfSerializable(Serializable):
+class SelfSerializable(Serializable, ABC):
 
     @classmethod
+    @abstractmethod
     @override(Serializable)
     def from_dict(cls, obj: dict[str, Any]) -> Self:
         raise NotImplementedError

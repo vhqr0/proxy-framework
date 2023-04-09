@@ -1,4 +1,5 @@
 import asyncio
+from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Optional
@@ -19,7 +20,7 @@ class ProtocolError(RuntimeError):
         self.part = part
 
 
-class Stream(MultiLayer['Stream'], Loggable):
+class Stream(MultiLayer['Stream'], Loggable, ABC):
     to_read: bytes
 
     def __init__(self, **kwargs):
@@ -60,6 +61,7 @@ class Stream(MultiLayer['Stream'], Loggable):
         if self.next_layer is not None:
             await self.next_layer.ensure_closed()
 
+    @abstractmethod
     def write_primitive(self, buf: bytes):
         raise NotImplementedError
 
@@ -84,6 +86,7 @@ class Stream(MultiLayer['Stream'], Loggable):
                 break
             await self.writedrain(buf)
 
+    @abstractmethod
     async def read_primitive(self) -> bytes:
         raise NotImplementedError
 
