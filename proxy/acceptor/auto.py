@@ -1,10 +1,18 @@
 import re
 import socket
 import struct
+from enum import IntEnum, unique
 
 from ..common import override
 from ..stream import ProtocolError, Stream
 from .base import ProxyAcceptor
+
+
+@unique
+class Socks5Atype(IntEnum):
+    Domain = 3
+    IPv4 = 1
+    IPv6 = 4
 
 
 class HTTPOrSocks5Acceptor(ProxyAcceptor):
@@ -38,19 +46,21 @@ class HTTPOrSocks5Acceptor(ProxyAcceptor):
             raise ProtocolError('socks5', 'auth')
         await stream.writedrain(b'\x05\x00')
         buf = await stream.readatleast(4)
-        if buf[3] == 3:  # domain
+        atype = Socks5Atype(buf[3])
+        if atype == Socks5Atype.Domain:
+            alen = buf[4]
             ver, cmd, rsv, _, _, addr_bytes, port = struct.unpack(
-                f'!BBBBB{buf[4]}sH', buf)
+                f'!BBBBB{alen}sH', buf)
             addr = addr_bytes.decode()
-        elif buf[3] == 1:  # ipv4
+        elif atype == Socks5Atype.IPv4:
             ver, cmd, rsv, _, addr_bytes, port = struct.unpack('!BBBB4sH', buf)
             addr = socket.inet_ntop(socket.AF_INET, addr_bytes)
-        elif buf[3] == 4:  # ipv6
+        elif atype == Socks5Atype.IPv6:
             ver, cmd, rsv, _, addr_bytes, port = struct.unpack(
                 '!BBBB16sH', buf)
             addr = socket.inet_ntop(socket.AF_INET6, addr_bytes)
         else:
-            raise ProtocolError('socks5', 'header')
+            raise ProtocolError('socks5', 'atype')
         if ver != 5 or cmd != 1 or rsv != 0:
             raise ProtocolError('socks5', 'header')
         await stream.writedrain(b'\x05\x00\x00\x01\x00\x00\x00\x00\x00\x00')

@@ -1,5 +1,5 @@
-import enum
 import os.path
+from enum import Enum, auto
 from functools import cache
 from typing import Any, Optional
 
@@ -9,19 +9,10 @@ from .common import Loggable, SelfSerializable, override
 from .defaults import RULES_DEFAULT, RULES_FILE
 
 
-class Rule(enum.Enum):
-    Block = enum.auto()
-    Direct = enum.auto()
-    Forward = enum.auto()
-
-    def __str__(self) -> str:
-        if self is self.Block:
-            return 'block'
-        if self is self.Direct:
-            return 'direct'
-        if self is self.Forward:
-            return 'direct'
-        raise KeyError
+class Rule(Enum):
+    Block = auto()
+    Direct = auto()
+    Forward = auto()
 
     @classmethod
     def from_str(cls, s: str) -> Self:
