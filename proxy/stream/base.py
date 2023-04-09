@@ -102,17 +102,18 @@ class Stream(MultiLayer['Stream'], Loggable, ABC):
         return self.to_read
 
     async def readatleast(self, n: int) -> bytes:
+        if n > STREAM_BUFSIZE:
+            raise asyncio.LimitOverrunError(
+                message='read over buffer size',
+                consumed=0,
+            )
+
         buf = b''
         while len(buf) < n:
             next_buf = await self.read()
             if len(next_buf) == 0:
                 raise asyncio.IncompleteReadError(partial=buf, expected=n)
             buf += next_buf
-            if len(buf) > STREAM_BUFSIZE:
-                raise asyncio.LimitOverrunError(
-                    message='read over buffer size',
-                    consumed=len(buf),
-                )
         return buf
 
     async def readexactly(self, n: int) -> bytes:

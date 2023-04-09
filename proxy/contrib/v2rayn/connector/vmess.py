@@ -58,12 +58,12 @@ class VmessConnector(ProxyConnector):
         # iv(16s)         : iv
         # key(16s)        : key
         # rv(B)           : rv
-        # opts(B)         : 5
-        # plen|secmeth(B) : plen|3
+        # opts(B)         : 5 (standard, mask)
+        # plen|secmeth(B) : plen|3 (aes-128-gcm)
         # res(B)          : 0
-        # cmd(B)          : 1
+        # cmd(B)          : 1 (tcp connect)
         # port(H)         : port
-        # atype(B)        : 2
+        # atype(B)        : 2 (domain)
         # alen(B)         : alen
         # addr({alen}s)   : addr
         # random({plen}s) : randbytes

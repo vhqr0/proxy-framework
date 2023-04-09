@@ -1,3 +1,4 @@
+import asyncio
 import struct
 
 from Crypto.Hash.SHAKE128 import SHAKE128_XOF
@@ -5,6 +6,8 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from proxy.common import override
 from proxy.stream import Stream
+
+from ..defaults import STREAM_VMESS_BUFSIZE
 
 
 class VmessCryptor:
@@ -36,7 +39,13 @@ class VmessCryptor:
 
         buf = await stream.readexactly(2)
         blen, = struct.unpack('!H', buf)
-        buf = await stream.readexactly(blen ^ mask)
+        blen = blen ^ mask
+        if blen > STREAM_VMESS_BUFSIZE:
+            raise asyncio.LimitOverrunError(
+                message='read over buffer size',
+                consumed=0,
+            )
+        buf = await stream.readexactly(blen)
         buf = self.aead.decrypt(iv, buf, b'')
 
         return buf
