@@ -43,7 +43,7 @@ class RuleMatcher(SelfSerializable, Loggable):
     @override(SelfSerializable)
     def to_dict(self) -> dict[str, Any]:
         return {
-            'rules_default': str(self.rules_default),
+            'rules_default': self.rules_default.name,
             'rules_file': self.rules_file,
         }
 

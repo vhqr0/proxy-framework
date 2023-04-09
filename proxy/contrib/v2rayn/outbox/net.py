@@ -1,3 +1,4 @@
+from abc import ABC
 from typing import Any
 
 from proxy.common import override
@@ -5,7 +6,7 @@ from proxy.defaults import TLS_OUTBOX_HOST, WS_OUTBOX_HOST, WS_OUTBOX_PATH
 from proxy.outbox import Outbox
 
 
-class V2rayNNetCtxOutbox(Outbox):
+class V2rayNNetCtxOutbox(Outbox, ABC):
     net: str
     ws_path: str
     ws_host: str
