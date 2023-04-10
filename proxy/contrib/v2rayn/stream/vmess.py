@@ -1,10 +1,7 @@
-import asyncio
-import struct
-
 from Crypto.Hash.SHAKE128 import SHAKE128_XOF
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-from proxy.common import override
+from proxy.common import HStruct, override
 from proxy.stream import BufferOverflowError, Stream
 
 from ..defaults import STREAM_VMESS_BUFSIZE
@@ -23,22 +20,22 @@ class VmessCryptor:
         self.count = count
 
     def encrypt(self, buf: bytes) -> bytes:
-        mask, = struct.unpack('!H', self.shake.read(2))
-        iv = struct.pack('!H', self.count) + self.iv
+        mask, = HStruct.unpack(self.shake.read(2))
+        iv = HStruct.pack(self.count) + self.iv
         self.count = (self.count + 1) & 0xffff
 
         buf = self.aead.encrypt(iv, buf, b'')
-        buf = struct.pack('!H', len(buf) ^ mask) + buf
+        buf = HStruct.pack(len(buf) ^ mask) + buf
 
         return buf
 
     async def read_decrypt(self, stream: Stream) -> bytes:
-        mask, = struct.unpack('!H', self.shake.read(2))
-        iv = struct.pack('!H', self.count) + self.iv
+        mask, = HStruct.unpack(self.shake.read(2))
+        iv = HStruct.pack(self.count) + self.iv
         self.count = (self.count + 1) & 0xffff
 
         buf = await stream.readexactly(2)
-        blen, = struct.unpack('!H', buf)
+        blen, = HStruct.unpack(buf)
         blen = blen ^ mask
         if blen > STREAM_VMESS_BUFSIZE:
             raise BufferOverflowError(blen)

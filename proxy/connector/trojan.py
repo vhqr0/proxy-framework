@@ -1,8 +1,10 @@
-import struct
+from struct import Struct
 
-from ..common import override
+from ..common import HStruct, override
 from ..stream import Stream
 from .base import ProxyConnector
+
+BBBStruct = Struct('!BBB')
 
 
 class TrojanConnector(ProxyConnector):
@@ -20,7 +22,11 @@ class TrojanConnector(ProxyConnector):
         assert self.next_layer is not None
         addr, port = self.addr
         addr_bytes = addr.encode()
-        alen = len(addr_bytes)
-        req = struct.pack(f'!BBB{alen}sH', 1, 3, alen, addr_bytes, port)
-        req = self.auth + b'\r\n' + req + b'\r\n' + rest
+        req = self.auth + \
+            b'\r\n' + \
+            BBBStruct.pack(1, 3, len(addr_bytes)) + \
+            addr_bytes + \
+            HStruct.pack(port) + \
+            b'\r\n' + \
+            rest
         return await self.next_layer.connect(rest=req)

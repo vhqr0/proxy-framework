@@ -1,14 +1,17 @@
-import asyncio
-import struct
 from dataclasses import dataclass
+from struct import Struct
 
 from typing_extensions import Self
 
+from proxy.common import BStruct, IStruct
 from proxy.stream import BufferOverflowError, ProtocolError, Stream
 
 from .consts import (AlertDescription, AlertLevel, ChangeCipherSpecType,
                      ContentType, HandshakeType, Version)
 from .defaults import STREAM_TLS13_BUFSIZE
+
+BBStruct = Struct('!BB')
+BHHStruct = Struct('!BHH')
 
 
 @dataclass
@@ -18,13 +21,13 @@ class Record:
     buf: bytes
 
     def __bytes__(self) -> bytes:
-        header = struct.pack('!BHH', self.btype, self.ver, len(self.buf))
+        header = BHHStruct.pack(self.btype, self.ver, len(self.buf))
         return header + self.buf
 
     @classmethod
     async def read_from_stream(cls, stream: Stream) -> Self:
         buf = await stream.readexactly(5)
-        btype, ver, blen = struct.unpack('!BHH', buf)
+        btype, ver, blen = BHHStruct.unpack(buf)
         if blen > STREAM_TLS13_BUFSIZE:
             raise BufferOverflowError(blen)
         buf = await stream.readexactly(blen)
@@ -36,11 +39,11 @@ class ChangeCipherSpec:
     ctype: ChangeCipherSpecType
 
     def __bytes__(self) -> bytes:
-        return struct.pack('!B', self.ctype)
+        return BStruct.pack(self.ctype)
 
     @classmethod
     def from_bytes(cls, buf: bytes) -> Self:
-        ctype, = struct.unpack('!B', buf)
+        ctype, = BStruct.unpack(buf)
         return cls(ctype=ChangeCipherSpecType(ctype))
 
 
@@ -50,11 +53,11 @@ class Alert:
     desc: AlertDescription
 
     def __bytes__(self) -> bytes:
-        return struct.pack('!BB', self.level, self.desc)
+        return BBStruct.pack(self.level, self.desc)
 
     @classmethod
     def from_bytes(cls, buf: bytes) -> Self:
-        level, desc = struct.unpack('!BB', buf)
+        level, desc = BBStruct.unpack(buf)
         return cls(level=AlertLevel(level), desc=AlertDescription(desc))
 
 
@@ -64,11 +67,11 @@ class Handshake:
     buf: bytes
 
     def __bytes__(self) -> bytes:
-        return struct.pack('!I', (self.btype << 24) + len(self.buf)) + self.buf
+        return IStruct.pack((self.btype << 24) + len(self.buf)) + self.buf
 
     @classmethod
     def from_bytes(cls, buf: bytes) -> Self:
-        blen, = struct.unpack_from('!I', buffer=buf, offset=0)
+        blen, = IStruct.unpack_from(buffer=buf, offset=0)
         btype, blen = (blen & 0xff000000) >> 24, blen & 0xfff
         if len(buf) != blen + 4:
             raise ProtocolError('tls', 'handshake')

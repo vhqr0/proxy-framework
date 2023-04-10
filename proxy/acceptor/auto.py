@@ -2,10 +2,14 @@ import re
 import socket
 import struct
 from enum import IntEnum, unique
+from struct import Struct
 
 from ..common import override
 from ..stream import ProtocolError, Stream
 from .base import ProxyAcceptor
+
+IPv4Struct = Struct('!BBBB4sH')
+IPv6Struct = Struct('!BBBB16sH')
 
 
 @unique
@@ -55,11 +59,10 @@ class HTTPOrSocks5Acceptor(ProxyAcceptor):
                 f'!BBBBB{alen}sH', buf)
             addr = addr_bytes.decode()
         elif atype == Socks5Atype.IPv4:
-            ver, cmd, rsv, _, addr_bytes, port = struct.unpack('!BBBB4sH', buf)
+            ver, cmd, rsv, _, addr_bytes, port = IPv4Struct.unpack(buf)
             addr = socket.inet_ntop(socket.AF_INET, addr_bytes)
         elif atype == Socks5Atype.IPv6:
-            ver, cmd, rsv, _, addr_bytes, port = struct.unpack(
-                '!BBBB16sH', buf)
+            ver, cmd, rsv, _, addr_bytes, port = IPv6Struct.unpack(buf)
             addr = socket.inet_ntop(socket.AF_INET6, addr_bytes)
         else:
             raise ProtocolError('socks5', 'atype')

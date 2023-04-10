@@ -1,10 +1,14 @@
 import socket
 import struct
+from struct import Struct
 
 from ..common import override
 from ..stream import ProtocolError, Stream
 from .auto import Socks5Atype
 from .base import ProxyAcceptor
+
+IPv4Struct = Struct('!BB4sH')
+IPv6Struct = Struct('!BB16sH')
 
 
 class TrojanAcceptor(ProxyAcceptor):
@@ -34,10 +38,10 @@ class TrojanAcceptor(ProxyAcceptor):
                     f'!BBB{alen}sH', buf)
                 addr = addr_bytes.decode()
             elif atype == Socks5Atype.IPv4:
-                cmd, _, addr_bytes, port = struct.unpack('!BB4sH', buf)
+                cmd, _, addr_bytes, port = IPv4Struct.unpack(buf)
                 addr = socket.inet_ntop(socket.AF_INET, addr_bytes)
             elif atype == Socks5Atype.IPv6:
-                cmd, _, addr_bytes, port = struct.unpack('!BB16sH', buf)
+                cmd, _, addr_bytes, port = IPv6Struct.unpack(buf)
                 addr = socket.inet_ntop(socket.AF_INET6, addr_bytes)
             else:
                 raise ProtocolError('trojan', 'atype')
