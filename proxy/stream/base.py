@@ -149,3 +149,34 @@ class Stream(MultiLayer['Stream'], Loggable, ABC):
     async def readQ(self) -> int:
         i, = await self.read_struct(QStruct)
         return i
+
+    def popexactly(self, n: int) -> bytes:
+        if n > STREAM_BUFSIZE:
+            raise BufferOverflowError(n)
+        buf = self.pop()
+        if len(buf) < n:
+            raise IncompleteReadError(partial=buf, expected=n)
+        if len(buf) > n:
+            self.push(buf[n:])
+            buf = buf[:n]
+        return buf
+
+    def pop_struct(self, st: Struct) -> tuple[Any, ...]:
+        buf = self.popexactly(st.size)
+        return st.unpack(buf)
+
+    def popB(self) -> int:
+        i, = self.pop_struct(BStruct)
+        return i
+
+    def popH(self) -> int:
+        i, = self.pop_struct(HStruct)
+        return i
+
+    def popI(self) -> int:
+        i, = self.pop_struct(IStruct)
+        return i
+
+    def popQ(self) -> int:
+        i, = self.pop_struct(QStruct)
+        return i
