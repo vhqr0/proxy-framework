@@ -1,11 +1,10 @@
-import asyncio
 import random
 import struct
 from enum import IntEnum, unique
 
 from ..common import override
 from ..defaults import STREAM_BUFSIZE
-from .base import ProtocolError, Stream
+from .base import BufferOverflowError, ProtocolError, Stream
 
 
 @unique
@@ -82,20 +81,17 @@ class WSStream(Stream):
                 return WSOpcode.Close, b'', True
             if opcode in (WSOpcode.Text, WSOpcode.Binary):
                 return opcode, buf, fin
-            raise ProtocolError('ws', 'opcode')
+            raise ProtocolError('ws', 'frame', 'opcode')
 
     async def ws_read_msg(self) -> tuple[int, bytes]:
         opcode, buf, fin = await self.ws_read_data()
         while not fin:
             next_opcode, next_buf, fin = await self.ws_read_data()
             if next_opcode != opcode:
-                raise ProtocolError('ws', 'opcode')
+                raise ProtocolError('ws', 'frame', 'opcode')
             buf += next_buf
             if len(buf) > STREAM_BUFSIZE:
-                raise asyncio.LimitOverrunError(
-                    message='read over buffer size',
-                    consumed=len(buf),
-                )
+                raise BufferOverflowError(len(buf))
         return opcode, buf
 
     @override(Stream)

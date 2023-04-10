@@ -20,7 +20,7 @@ class HTTPConnector(ProxyConnector):
         async with stream.cm(exc_only=True):
             headers = await stream.readuntil(b'\r\n\r\n', strip=True)
             if not headers.startswith(b'HTTP/1.1 200'):
-                raise ProtocolError('http', 'status')
+                raise ProtocolError('http', 'header', 'status')
             if len(rest) != 0:
                 await stream.writedrain(rest)
             return stream

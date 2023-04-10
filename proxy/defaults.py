@@ -29,4 +29,4 @@ STREAM_BUFSIZE = 2**22  # 4MB
 STREAM_TCP_BUFSIZE = 2**12  # 4KB
 
 LOG_FORMAT = '%(asctime)s %(name)s %(levelname)s %(message)s'
-LOG_DATEFMT = '%y-%m-%d %H:%M:%S'
+LOG_DATE_FORMAT = '%y-%m-%d %H:%M:%S'

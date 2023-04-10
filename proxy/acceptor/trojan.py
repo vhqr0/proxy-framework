@@ -40,8 +40,8 @@ class TrojanAcceptor(ProxyAcceptor):
                 cmd, _, addr_bytes, port = struct.unpack('!BB16sH', buf)
                 addr = socket.inet_ntop(socket.AF_INET6, addr_bytes)
             else:
-                raise ProtocolError('trojan', 'header')
+                raise ProtocolError('trojan', 'atype')
             if cmd != 1:
-                raise ProtocolError('trojan', 'header')
+                raise ProtocolError('trojan', 'cmd')
             self.addr = addr, port
             return stream

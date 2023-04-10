@@ -95,18 +95,18 @@ class VmessConnector(ProxyConnector):
         async with next_stream.cm(exc_only=True):
             buf = await next_stream.peek()
             if len(buf) == 0:
-                raise ProtocolError('vmess', 'header')
+                raise ProtocolError('vmess', 'header', 'emptycheck')
             buf = await next_stream.readexactly(4)
             cipher = Cipher(AES(rkey), CFB(riv))
             decryptor = cipher.decryptor()
             buf = decryptor.update(buf) + decryptor.finalize()
             rrv, opt, cmd, clen = struct.unpack('!BBBB', buf)
             if rrv != rv:
-                raise ProtocolError('vmess', 'auth')
+                raise ProtocolError('vmess', 'header', 'auth')
             if opt != 0:
-                raise ProtocolError('vmess', 'opt')
+                raise ProtocolError('vmess', 'header', 'opt')
             if cmd != 0 or clen != 0:
-                raise ProtocolError('vmess', 'cmd')
+                raise ProtocolError('vmess', 'header', 'cmd')
             return VmessStream(
                 write_encryptor=write_encryptor,
                 read_decryptor=read_decryptor,

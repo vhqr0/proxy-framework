@@ -10,14 +10,28 @@ from ..common import Loggable, MultiLayer
 from ..defaults import STREAM_BUFSIZE
 
 
-class ProtocolError(RuntimeError):
+class StreamError(Exception):
+    pass
+
+
+class ProtocolError(RuntimeError, StreamError):
+    breadcrumb: list[str]
     protocol: str
     part: str
 
-    def __init__(self, protocol: str, part: str):
-        super().__init__(f'error from protocol {protocol}/{part}')
-        self.protocol = protocol
-        self.part = part
+    def __init__(self, *breadcrumb: str):
+        super().__init__('error from protocol {}'.format('/'.join(breadcrumb)))
+        self.breadcrumb = list(breadcrumb)
+
+
+class BufferOverflowError(asyncio.LimitOverrunError, StreamError):
+
+    def __init__(self, consumed: int = 0):
+        super().__init__(message='buffer overflow', consumed=consumed)
+
+
+class IncompleteReadError(asyncio.IncompleteReadError, StreamError):
+    pass
 
 
 class Stream(MultiLayer['Stream'], Loggable, ABC):
@@ -103,16 +117,12 @@ class Stream(MultiLayer['Stream'], Loggable, ABC):
 
     async def readatleast(self, n: int) -> bytes:
         if n > STREAM_BUFSIZE:
-            raise asyncio.LimitOverrunError(
-                message='read over buffer size',
-                consumed=0,
-            )
-
+            raise BufferOverflowError(n)
         buf = b''
         while len(buf) < n:
             next_buf = await self.read()
             if len(next_buf) == 0:
-                raise asyncio.IncompleteReadError(partial=buf, expected=n)
+                raise IncompleteReadError(partial=buf, expected=n)
             buf += next_buf
         return buf
 
@@ -130,13 +140,10 @@ class Stream(MultiLayer['Stream'], Loggable, ABC):
         while len(sp) == 1:
             next_buf = await self.read()
             if len(next_buf) == 0:
-                raise asyncio.IncompleteReadError(partial=buf, expected=None)
+                raise IncompleteReadError(partial=buf, expected=None)
             buf += next_buf
             if len(buf) > STREAM_BUFSIZE:
-                raise asyncio.LimitOverrunError(
-                    message='read over buffer size',
-                    consumed=len(buf),
-                )
+                raise BufferOverflowError(len(buf))
             sp = buf.split(separator, 1)
         self.push(sp[1])
         buf = sp[0]

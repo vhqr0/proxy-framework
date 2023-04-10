@@ -37,7 +37,7 @@ class WSConnector(Connector):
         async with next_stream.cm(exc_only=True):
             headers = await next_stream.readuntil(b'\r\n\r\n', strip=True)
             if not headers.startswith(b'HTTP/1.1 101'):
-                raise ProtocolError('ws', 'status')
+                raise ProtocolError('ws', 'header', 'status')
             stream = WSStream(next_layer=next_stream)
             if len(rest) != 0:
                 await stream.writedrain(rest)

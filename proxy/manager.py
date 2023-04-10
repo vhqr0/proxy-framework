@@ -9,10 +9,11 @@ from typing import Optional
 
 from .common import Loggable
 from .defaults import (BLOCK_OUTBOX_URL, CONFIG_FILE, CONNECT_RETRY,
-                       DIRECT_OUTBOX_URL, INBOX_URL, LOG_DATEFMT, LOG_FORMAT,
-                       RULES_DEFAULT, RULES_FILE, TLS_INBOX_CERT_FILE,
-                       TLS_INBOX_KEY_FILE, TLS_INBOX_KEY_PWD,
-                       TLS_OUTBOX_CERT_FILE, TLS_OUTBOX_HOST)
+                       DIRECT_OUTBOX_URL, INBOX_URL, LOG_DATE_FORMAT,
+                       LOG_FORMAT, RULES_DEFAULT, RULES_FILE,
+                       TLS_INBOX_CERT_FILE, TLS_INBOX_KEY_FILE,
+                       TLS_INBOX_KEY_PWD, TLS_OUTBOX_CERT_FILE,
+                       TLS_OUTBOX_HOST)
 from .outbox import Outbox
 from .proxyserver import ProxyServer
 
@@ -69,7 +70,7 @@ class Manager(Cmd, Loggable):
         logging.basicConfig(
             level='DEBUG' if debug else 'INFO',
             format=LOG_FORMAT,
-            datefmt=LOG_DATEFMT,
+            datefmt=LOG_DATE_FORMAT,
         )
 
         manager = cls(config_file=config_file)

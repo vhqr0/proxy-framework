@@ -32,6 +32,8 @@ class HTTPOrSocks5Acceptor(ProxyAcceptor):
         stream = await self.next_layer.accept()
         async with stream.cm(exc_only=True):
             buf = await stream.peek()
+            if len(buf) == 0:
+                raise ProtocolError('auto', 'emptycheck')
             if buf[0] == 5:
                 await self.dispatch_socks5(stream)
             else:

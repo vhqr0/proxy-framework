@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from typing_extensions import Self
 
-from proxy.stream import ProtocolError, Stream
+from proxy.stream import BufferOverflowError, ProtocolError, Stream
 
 from .consts import (AlertDescription, AlertLevel, ChangeCipherSpecType,
                      ContentType, HandshakeType, Version)
@@ -26,10 +26,7 @@ class Record:
         buf = await stream.readexactly(5)
         btype, ver, blen = struct.unpack('!BHH', buf)
         if blen > STREAM_TLS13_BUFSIZE:
-            raise asyncio.LimitOverrunError(
-                message='read over buffer size',
-                consumed=0,
-            )
+            raise BufferOverflowError(blen)
         buf = await stream.readexactly(blen)
         return cls(btype=btype, ver=Version(ver), buf=buf)
 
