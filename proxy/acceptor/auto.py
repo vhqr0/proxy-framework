@@ -1,6 +1,5 @@
 import re
 import socket
-import struct
 from enum import IntEnum, unique
 from struct import Struct
 
@@ -9,15 +8,33 @@ from ..stream import Stream
 from ..stream.errors import ProtocolError
 from .base import ProxyAcceptor
 
-IPv4Struct = Struct('!BBBB4sH')
-IPv6Struct = Struct('!BBBB16sH')
+BBStruct = Struct('!BB')
+BBBBStruct = Struct('!BBBB')
+IPv4Struct = Struct('!4sH')
+IPv6Struct = Struct('!16sH')
 
 
 @unique
-class Socks5Atype(IntEnum):
+class Atype(IntEnum):
     Domain = 3
     IPv4 = 1
     IPv6 = 4
+
+    async def read(self, stream: Stream) -> tuple[str, int]:
+        if self is self.Domain:
+            alen = await stream.readB()
+            addr_bytes = await stream.readexactly(alen)
+            port = await stream.readH()
+            addr = addr_bytes.decode()
+        elif self is self.IPv4:
+            addr_bytes, port = await stream.read_struct(IPv4Struct)
+            addr = socket.inet_ntop(socket.AF_INET, addr_bytes)
+        elif self is self.IPv6:
+            addr_bytes, port = await stream.read_struct(IPv6Struct)
+            addr = socket.inet_ntop(socket.AF_INET6, addr_bytes)
+        else:
+            raise ProtocolError('socks5', 'atype', self.name)
+        return addr, port
 
 
 class HTTPOrSocks5Acceptor(ProxyAcceptor):
@@ -46,31 +63,18 @@ class HTTPOrSocks5Acceptor(ProxyAcceptor):
             return stream
 
     async def dispatch_socks5(self, stream: Stream):
-        buf = await stream.readatleast(3)
-        nmeths = buf[1]
-        ver, nmeths, meths = struct.unpack(f'!BB{nmeths}s', buf)
-        if ver != 5 or 0 not in meths:
+        ver, nmeths = await stream.read_struct(BBStruct)
+        if ver != 5 or nmeths == 0:
             raise ProtocolError('socks5', 'auth')
+        meths = await stream.readexactly(nmeths)
+        if 0 not in meths:
+            raise ProtocolError('socks5', 'auth', 'type')
         await stream.writedrain(b'\x05\x00')
-        buf = await stream.readatleast(4)
-        atype = Socks5Atype(buf[3])
-        if atype == Socks5Atype.Domain:
-            alen = buf[4]
-            ver, cmd, rsv, _, _, addr_bytes, port = struct.unpack(
-                f'!BBBBB{alen}sH', buf)
-            addr = addr_bytes.decode()
-        elif atype == Socks5Atype.IPv4:
-            ver, cmd, rsv, _, addr_bytes, port = IPv4Struct.unpack(buf)
-            addr = socket.inet_ntop(socket.AF_INET, addr_bytes)
-        elif atype == Socks5Atype.IPv6:
-            ver, cmd, rsv, _, addr_bytes, port = IPv6Struct.unpack(buf)
-            addr = socket.inet_ntop(socket.AF_INET6, addr_bytes)
-        else:
-            raise ProtocolError('socks5', 'atype')
+        ver, cmd, rsv, atype = await stream.read_struct(BBBBStruct)
         if ver != 5 or cmd != 1 or rsv != 0:
             raise ProtocolError('socks5', 'header')
+        self.addr = await Atype(atype).read(stream)
         await stream.writedrain(b'\x05\x00\x00\x01\x00\x00\x00\x00\x00\x00')
-        self.addr = addr, port
 
     async def dispatch_http(self, stream: Stream):
         buf = await stream.readuntil(b'\r\n\r\n', strip=True)
