@@ -2,9 +2,10 @@ import random
 from enum import IntEnum, unique
 from struct import Struct
 
-from ..common import HStruct, QStruct, override
+from ..common import override
 from ..defaults import STREAM_BUFSIZE
-from .base import BufferOverflowError, ProtocolError, Stream
+from .base import Stream
+from .errors import BufferOverflowError, ProtocolError
 
 BBStruct = Struct('!BB')
 BBHStruct = Struct('!BBH')
@@ -54,16 +55,13 @@ class WSStream(Stream):
 
     async def ws_read(self) -> tuple[WSOpcode, bytes, bool]:
         assert self.next_layer is not None
-        buf = await self.next_layer.readexactly(2)
-        flags, blen = BBStruct.unpack(buf)
+        flags, blen = await self.next_layer.read_struct(BBStruct)
         fin, opcode = flags & 0x80, WSOpcode(flags & 0xf)
         mask, blen = blen & 0x80, blen & 0x7f
         if blen == 126:
-            buf = await self.next_layer.readexactly(2)
-            blen, = HStruct.unpack(buf)
+            blen = await self.next_layer.readH()
         elif blen == 127:
-            buf = await self.next_layer.readexactly(8)
-            blen, = QStruct.unpack(buf)
+            blen = await self.next_layer.readQ()
         if mask != 0:
             mask_key = await self.next_layer.readexactly(4)
             buf = await self.next_layer.readexactly(blen)

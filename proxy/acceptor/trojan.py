@@ -3,7 +3,8 @@ import struct
 from struct import Struct
 
 from ..common import override
-from ..stream import ProtocolError, Stream
+from ..stream import Stream
+from ..stream.errors import ProtocolError
 from .auto import Socks5Atype
 from .base import ProxyAcceptor
 

@@ -1,7 +1,8 @@
 from struct import Struct
 
-from ..common import HStruct, override
+from ..common import override
 from ..stream import Stream
+from ..stream.structs import HStruct
 from .base import ProxyConnector
 
 BBBStruct = Struct('!BBB')

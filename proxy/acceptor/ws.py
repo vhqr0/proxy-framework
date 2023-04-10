@@ -3,7 +3,8 @@ import re
 from hashlib import sha1
 
 from ..common import override
-from ..stream import ProtocolError, Stream, WSStream
+from ..stream import Stream, WSStream
+from ..stream.errors import ProtocolError
 from .base import Acceptor
 
 

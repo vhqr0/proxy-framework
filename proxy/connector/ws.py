@@ -3,7 +3,8 @@ import random
 
 from ..common import override
 from ..defaults import WS_OUTBOX_HOST, WS_OUTBOX_PATH
-from ..stream import ProtocolError, Stream, WSStream
+from ..stream import Stream, WSStream
+from ..stream.errors import ProtocolError
 from .base import Connector
 
 

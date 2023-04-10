@@ -3,8 +3,9 @@ from struct import Struct
 
 from typing_extensions import Self
 
-from proxy.common import BStruct, IStruct
-from proxy.stream import BufferOverflowError, ProtocolError, Stream
+from proxy.stream import Stream
+from proxy.stream.errors import BufferOverflowError, ProtocolError
+from proxy.stream.structs import BStruct, IStruct
 
 from .consts import (AlertDescription, AlertLevel, ChangeCipherSpecType,
                      ContentType, HandshakeType, Version)
@@ -26,8 +27,7 @@ class Record:
 
     @classmethod
     async def read_from_stream(cls, stream: Stream) -> Self:
-        buf = await stream.readexactly(5)
-        btype, ver, blen = BHHStruct.unpack(buf)
+        btype, ver, blen = await stream.read_struct(BHHStruct)
         if blen > STREAM_TLS13_BUFSIZE:
             raise BufferOverflowError(blen)
         buf = await stream.readexactly(blen)

@@ -2,36 +2,15 @@ import asyncio
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Optional
+from struct import Struct
+from typing import Any, Optional
 
 from typing_extensions import Self
 
 from ..common import Loggable, MultiLayer
 from ..defaults import STREAM_BUFSIZE
-
-
-class StreamError(Exception):
-    pass
-
-
-class ProtocolError(RuntimeError, StreamError):
-    breadcrumb: list[str]
-    protocol: str
-    part: str
-
-    def __init__(self, *breadcrumb: str):
-        super().__init__('error from protocol {}'.format('/'.join(breadcrumb)))
-        self.breadcrumb = list(breadcrumb)
-
-
-class BufferOverflowError(asyncio.LimitOverrunError, StreamError):
-
-    def __init__(self, consumed: int = 0):
-        super().__init__(message='buffer overflow', consumed=consumed)
-
-
-class IncompleteReadError(asyncio.IncompleteReadError, StreamError):
-    pass
+from .errors import BufferOverflowError, IncompleteReadError
+from .structs import BStruct, HStruct, IStruct, QStruct
 
 
 class Stream(MultiLayer['Stream'], Loggable, ABC):
@@ -150,3 +129,23 @@ class Stream(MultiLayer['Stream'], Loggable, ABC):
         if not strip:
             buf += separator
         return buf
+
+    async def read_struct(self, st: Struct) -> tuple[Any, ...]:
+        buf = await self.readexactly(st.size)
+        return st.unpack(buf)
+
+    async def readB(self) -> int:
+        i, = await self.read_struct(BStruct)
+        return i
+
+    async def readH(self) -> int:
+        i, = await self.read_struct(HStruct)
+        return i
+
+    async def readI(self) -> int:
+        i, = await self.read_struct(IStruct)
+        return i
+
+    async def readQ(self) -> int:
+        i, = await self.read_struct(QStruct)
+        return i

@@ -1,15 +1,9 @@
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from struct import Struct
 from typing import Any, Generic, Optional, TypeVar
 
 from typing_extensions import Self
-
-BStruct = Struct('!B')
-HStruct = Struct('!H')
-IStruct = Struct('!I')
-QStruct = Struct('!Q')
 
 Meth = TypeVar('Meth')
 

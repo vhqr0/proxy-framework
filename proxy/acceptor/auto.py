@@ -5,7 +5,8 @@ from enum import IntEnum, unique
 from struct import Struct
 
 from ..common import override
-from ..stream import ProtocolError, Stream
+from ..stream import Stream
+from ..stream.errors import ProtocolError
 from .base import ProxyAcceptor
 
 IPv4Struct = Struct('!BBBB4sH')

@@ -1,8 +1,10 @@
 from Crypto.Hash.SHAKE128 import SHAKE128_XOF
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-from proxy.common import HStruct, override
-from proxy.stream import BufferOverflowError, Stream
+from proxy.common import override
+from proxy.stream import Stream
+from proxy.stream.errors import BufferOverflowError
+from proxy.stream.structs import HStruct
 
 from ..defaults import STREAM_VMESS_BUFSIZE
 
@@ -34,8 +36,7 @@ class VmessCryptor:
         iv = HStruct.pack(self.count) + self.iv
         self.count = (self.count + 1) & 0xffff
 
-        buf = await stream.readexactly(2)
-        blen, = HStruct.unpack(buf)
+        blen = await stream.readH()
         blen = blen ^ mask
         if blen > STREAM_VMESS_BUFSIZE:
             raise BufferOverflowError(blen)

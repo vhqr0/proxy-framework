@@ -1,5 +1,6 @@
 from ..common import override
-from ..stream import ProtocolError, Stream
+from ..stream import Stream
+from ..stream.errors import ProtocolError
 from .base import ProxyConnector
 
 
