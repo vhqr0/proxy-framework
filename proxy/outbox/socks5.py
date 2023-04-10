@@ -16,3 +16,7 @@ class Socks5Outbox(Outbox):
         )
         connector = Socks5Connector(addr=req.addr, next_layer=next_connector)
         return await connector.connect(rest=req.rest)
+
+
+class Socks5hOutbox(Socks5Outbox):
+    scheme = 'socks5h'
