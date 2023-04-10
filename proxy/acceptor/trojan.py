@@ -30,7 +30,7 @@ class TrojanAcceptor(ProxyAcceptor):
             cmd, atype = await stream.read_struct(BBStruct)
             if cmd != 1:
                 raise ProtocolError('trojan', 'header')
-            self.addr = await Atype(atype).read(stream)
+            self.addr = await Atype(atype).read_addr_from_stream(stream)
             buf = await stream.readexactly(2)
             if buf != b'\r\n':
                 raise ProtocolError('trojan', 'header')

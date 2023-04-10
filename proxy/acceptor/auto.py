@@ -20,7 +20,7 @@ class Atype(IntEnum):
     IPv4 = 1
     IPv6 = 4
 
-    async def read(self, stream: Stream) -> tuple[str, int]:
+    async def read_addr_from_stream(self, stream: Stream) -> tuple[str, int]:
         if self is self.Domain:
             alen = await stream.readB()
             addr_bytes = await stream.readexactly(alen)
@@ -73,7 +73,7 @@ class HTTPOrSocks5Acceptor(ProxyAcceptor):
         ver, cmd, rsv, atype = await stream.read_struct(BBBBStruct)
         if ver != 5 or cmd != 1 or rsv != 0:
             raise ProtocolError('socks5', 'header')
-        self.addr = await Atype(atype).read(stream)
+        self.addr = await Atype(atype).read_addr_from_stream(stream)
         await stream.writedrain(b'\x05\x00\x00\x01\x00\x00\x00\x00\x00\x00')
 
     async def dispatch_http(self, stream: Stream):

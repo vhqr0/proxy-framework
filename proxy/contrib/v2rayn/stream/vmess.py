@@ -31,7 +31,7 @@ class VmessCryptor:
 
         return buf
 
-    async def read_decrypt(self, stream: Stream) -> bytes:
+    async def read_decrypt_from_stream(self, stream: Stream) -> bytes:
         mask, = HStruct.unpack(self.shake.read(2))
         iv = HStruct.pack(self.count) + self.iv
         self.count = (self.count + 1) & 0xffff
@@ -68,4 +68,5 @@ class VmessStream(Stream):
         buf = await self.next_layer.peek()
         if len(buf) == 0:
             return b''
-        return await self.read_decryptor.read_decrypt(self.next_layer)
+        return await self.read_decryptor.read_decrypt_from_stream(
+            self.next_layer)

@@ -31,5 +31,5 @@ class Socks5Connector(ProxyConnector):
             ver, rep, rsv, atype = await stream.read_struct(BBBBStruct)
             if ver != 5 or rep != 0 or rsv != 0:
                 raise ProtocolError('socks5', 'header')
-            await Atype(atype).read()
+            await Atype(atype).read_addr_from_stream()
             return stream
