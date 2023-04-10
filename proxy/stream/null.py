@@ -8,6 +8,9 @@ class NULLStream(Stream):
         super().__init__(**kwargs)
         self.to_read = buf
 
+    def empty(self) -> bool:
+        return len(self.to_read) == 0
+
     @override(Stream)
     def write_primitive(self, buf: bytes):
         pass

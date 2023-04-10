@@ -3,7 +3,7 @@ from struct import Struct
 
 from typing_extensions import Self
 
-from proxy.stream import Stream
+from proxy.stream import NULLStream, Stream
 from proxy.stream.errors import BufferOverflowError, ProtocolError
 from proxy.stream.structs import BStruct, IStruct
 
@@ -71,8 +71,10 @@ class Handshake:
 
     @classmethod
     def from_bytes(cls, buf: bytes) -> Self:
-        blen, = IStruct.unpack_from(buffer=buf, offset=0)
+        stream = NULLStream(buf=buf)
+        blen = stream.popI()
         btype, blen = (blen & 0xff000000) >> 24, blen & 0xfff
-        if len(buf) != blen + 4:
-            raise ProtocolError('tls', 'handshake')
+        buf = stream.popexactly(blen)
+        if not stream.empty():
+            raise ProtocolError('tls', 'frame', 'remain')
         return cls(btype=HandshakeType(btype), buf=buf[4:])
