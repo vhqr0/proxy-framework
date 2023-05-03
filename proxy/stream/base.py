@@ -2,12 +2,13 @@ import asyncio
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from struct import Struct
 from typing import Any, Optional
 
 from typing_extensions import Self
 
-from ..common import Loggable, MultiLayer
+from ..common import Loggable, MultiLayer, override
 from ..defaults import STREAM_BUFSIZE
 from .errors import BufferOverflowError, IncompleteReadError
 from .structs import BStruct, HStruct, IStruct, QStruct
@@ -16,9 +17,9 @@ from .structs import BStruct, HStruct, IStruct, QStruct
 class Stream(MultiLayer['Stream'], Loggable, ABC):
     to_read: bytes
 
-    def __init__(self, **kwargs):
+    def __init__(self, to_read: bytes = b'', **kwargs):
         super().__init__(**kwargs)
-        self.to_read = b''
+        self.to_read = to_read
 
     @asynccontextmanager
     async def cm(self, exc_only: bool = False) -> AsyncGenerator[Self, None]:
@@ -180,3 +181,62 @@ class Stream(MultiLayer['Stream'], Loggable, ABC):
     def popQ(self) -> int:
         i, = self.pop_struct(QStruct)
         return i
+
+
+class Connector(MultiLayer['Connector'], Loggable, ABC):
+
+    @abstractmethod
+    async def connect(self, rest: bytes = b'') -> Stream:
+        raise NotImplementedError
+
+
+class Acceptor(MultiLayer['Acceptor'], Loggable, ABC):
+
+    @abstractmethod
+    async def accept(self) -> Stream:
+        raise NotImplementedError
+
+
+class WrapAcceptor(Acceptor):
+    stream: Stream
+
+    def __init__(self, stream: Stream, **kwargs):
+        super().__init__(**kwargs)
+        self.stream = stream
+
+    @override(Acceptor)
+    async def accept(self) -> Stream:
+        return self.stream
+
+
+class ProxyConnector(Connector):
+    addr: tuple[str, int]
+
+    def __init__(self, addr: tuple[str, int], **kwargs):
+        super().__init__(**kwargs)
+        self.addr = addr
+
+
+class ProxyAcceptor(Acceptor):
+    addr: tuple[str, int]
+
+
+@dataclass
+class ProxyRequest:
+    stream: Stream
+    addr: tuple[str, int]
+    rest: bytes
+
+    def __str__(self):
+        return f'<{self.addr[0]} {self.addr[1]} {len(self.rest)}B>'
+
+    @classmethod
+    async def from_acceptor(cls, acceptor: ProxyAcceptor) -> Self:
+        stream = await acceptor.accept()
+        addr = acceptor.addr
+        rest = stream.pop()
+        return cls(stream=stream, addr=addr, rest=rest)
+
+    async def ensure_rest(self):
+        if len(self.rest) == 0:
+            self.rest = await self.stream.readatleast(1)

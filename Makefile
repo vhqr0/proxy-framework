@@ -3,6 +3,7 @@ format: yapf isort
 
 mypy:
 	mypy --ignore-missing-imports --check-untyped-defs -m proxy.manager
+	mypy --ignore-missing-imports --check-untyped-defs -m proxy.contrib.proxy
 	mypy --ignore-missing-imports --check-untyped-defs -m proxy.contrib.v2rayn
 	mypy --ignore-missing-imports --check-untyped-defs -m proxy.contrib.tls13
 

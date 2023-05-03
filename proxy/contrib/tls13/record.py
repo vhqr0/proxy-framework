@@ -3,8 +3,9 @@ from struct import Struct
 
 from typing_extensions import Self
 
-from proxy.stream import NULLStream, Stream
+from proxy.stream import Stream
 from proxy.stream.errors import BufferOverflowError, ProtocolError
+from proxy.stream.null import NULLStream
 from proxy.stream.structs import BStruct, IStruct
 
 from .consts import (AlertDescription, AlertLevel, ChangeCipherSpecType,
@@ -75,6 +76,6 @@ class Handshake:
         blen = stream.popI()
         btype, blen = (blen & 0xff000000) >> 24, blen & 0xfff
         buf = stream.popexactly(blen)
-        if not stream.empty():
+        if len(stream.to_read) != 0:
             raise ProtocolError('tls', 'frame', 'remain')
         return cls(btype=HandshakeType(btype), buf=buf[4:])

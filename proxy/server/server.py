@@ -4,42 +4,41 @@ from typing import Any
 
 from typing_extensions import Self
 
-from .common import Loggable, SelfSerializable, override
-from .inbox import Inbox
-from .outboxdispatcher import OutboxDispatcher
+from ..common import Loggable, SelfSerializable, override
+from .base import Inbox
+from .outdispatcher import Outdispatcher
 
 
-class ProxyServer(SelfSerializable, Loggable):
+class Server(SelfSerializable, Loggable):
     tasks: set[asyncio.Task]
     inbox: Inbox
-    outbox_dispatcher: OutboxDispatcher
+    outdispatcher: Outdispatcher
 
-    def __init__(self, inbox: Inbox, outbox_dispatcher: OutboxDispatcher,
-                 **kwargs):
+    def __init__(self, inbox: Inbox, outdispatcher: Outdispatcher, **kwargs):
         super().__init__(**kwargs)
         self.tasks = set()
         self.inbox = inbox
-        self.outbox_dispatcher = outbox_dispatcher
+        self.outdispatcher = outdispatcher
 
     @override(SelfSerializable)
     def to_dict(self) -> dict[str, Any]:
         return {
             'inbox': self.inbox.to_dict(),
-            'outbox_dispatcher': self.outbox_dispatcher.to_dict(),
+            'outdispatcher': self.outdispatcher.to_dict(),
         }
 
     @classmethod
     @override(SelfSerializable)
     def from_dict(cls, obj: dict[str, Any]) -> Self:
         inbox = Inbox.from_dict(obj.get('inbox') or dict())
-        outbox_dispatcher = OutboxDispatcher.from_dict(
-            obj.get('outbox_dispatcher') or dict())
-        return cls(inbox=inbox, outbox_dispatcher=outbox_dispatcher)
+        outdispatcher = Outdispatcher.from_dict(
+            obj.get('outdispatcher') or dict())
+        return cls(inbox=inbox, outdispatcher=outdispatcher)
 
     def run(self):
         try:
-            self.outbox_dispatcher.rule_matcher.load_rules()
-            self.outbox_dispatcher.check_outboxes()
+            self.outdispatcher.rule_matcher.load_rules()
+            self.outdispatcher.check_outboxes()
             asyncio.run(self.start_server())
         except Exception as e:
             self.logger.error('error while serving: %s', e)
@@ -77,7 +76,7 @@ class ProxyServer(SelfSerializable, Loggable):
             return
         async with req.stream.cm() as s1:
             try:
-                stream = await self.outbox_dispatcher.connect(req)
+                stream = await self.outdispatcher.connect(req)
             except Exception as e:
                 self.logger.debug('except while connecting to %s: %.60s', req,
                                   e)

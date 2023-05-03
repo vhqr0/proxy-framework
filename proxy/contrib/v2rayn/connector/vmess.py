@@ -10,8 +10,7 @@ from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import CFB
 
 from proxy.common import override
-from proxy.connector import ProxyConnector
-from proxy.stream import Stream
+from proxy.stream import ProxyConnector, Stream
 from proxy.stream.errors import ProtocolError
 from proxy.stream.structs import IStruct, QStruct
 

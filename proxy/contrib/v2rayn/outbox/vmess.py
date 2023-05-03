@@ -9,9 +9,8 @@ from typing import Any
 from uuid import UUID
 
 from proxy.common import override
-from proxy.outbox import Outbox
-from proxy.request import Request
-from proxy.stream import Stream
+from proxy.server import Outbox
+from proxy.stream import ProxyRequest, Stream
 
 from ..connector import V2rayNNetConnector, VmessConnector
 from .net import V2rayNNetCtxOutbox
@@ -46,7 +45,7 @@ class VmessOutbox(V2rayNNetCtxOutbox):
         return md5(self.userid.bytes + self.VMESS_MAGIC).digest()
 
     @override(Outbox)
-    async def connect(self, req: Request) -> Stream:
+    async def connect(self, req: ProxyRequest) -> Stream:
         next_connector = V2rayNNetConnector(
             addr=self.url.addr,
             net=self.net,

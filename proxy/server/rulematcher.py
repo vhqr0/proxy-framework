@@ -5,8 +5,8 @@ from typing import Any, Optional
 
 from typing_extensions import Self
 
-from .common import Loggable, SelfSerializable, override
-from .defaults import RULES_DEFAULT, RULES_FILE
+from ..common import Loggable, SelfSerializable, override
+from ..defaults import RULES_FALLBACK, RULES_FILE
 
 
 class Rule(Enum):
@@ -27,30 +27,30 @@ class Rule(Enum):
 
 
 class RuleMatcher(SelfSerializable, Loggable):
-    rules_default: Rule
+    rules_fallback: Rule
     rules_file: str
     rules: Optional[dict[str, Rule]]
 
     def __init__(self,
-                 rules_default: str = RULES_DEFAULT,
+                 rules_fallback: str = RULES_FALLBACK,
                  rules_file: str = RULES_FILE,
                  **kwargs):
         super().__init__(**kwargs)
-        self.rules_default = Rule.from_str(rules_default)
+        self.rules_fallback = Rule.from_str(rules_fallback)
         self.rules_file = rules_file
         self.rules = None
 
     @override(SelfSerializable)
     def to_dict(self) -> dict[str, Any]:
         return {
-            'rules_default': self.rules_default.name,
+            'rules_fallback': self.rules_fallback.name,
             'rules_file': self.rules_file,
         }
 
     @classmethod
     @override(SelfSerializable)
     def from_dict(cls, obj: dict[str, Any]) -> Self:
-        return cls(rules_default=obj.get('rules_default') or RULES_DEFAULT,
+        return cls(rules_fallback=obj.get('rules_fallback') or RULES_FALLBACK,
                    rules_file=obj.get('rules_file') or RULES_FILE)
 
     def load_rules(self, force: bool = False):
@@ -80,11 +80,11 @@ class RuleMatcher(SelfSerializable, Loggable):
     @cache
     def match(self, domain: str) -> Rule:
         if self.rules is None:
-            return self.rules_default
+            return self.rules_fallback
         rule = self.rules.get(domain)
         if rule is not None:
             return rule
         sp = domain.split('.', 1)
         if len(sp) > 1:
             return self.match(sp[1])
-        return self.rules_default
+        return self.rules_fallback

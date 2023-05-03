@@ -3,7 +3,7 @@ from typing import Any
 
 from proxy.common import override
 from proxy.defaults import TLS_OUTBOX_HOST, WS_OUTBOX_HOST, WS_OUTBOX_PATH
-from proxy.outbox import Outbox
+from proxy.server import Outbox
 
 
 class V2rayNNetCtxOutbox(Outbox, ABC):

@@ -2,9 +2,10 @@ import ssl
 from typing import Any
 
 from proxy.common import override
-from proxy.connector import Connector, TCPConnector, WSConnector
+from proxy.contrib.proxy.ws import WSConnector
 from proxy.defaults import TLS_OUTBOX_HOST, WS_OUTBOX_HOST, WS_OUTBOX_PATH
-from proxy.stream import Stream
+from proxy.stream import Connector, Stream
+from proxy.stream.common import TCPConnector
 
 
 class V2rayNNetConnector(Connector):

@@ -11,16 +11,15 @@ import requests
 from yarl import URL
 
 from proxy.common import override
-from proxy.fetcher import Fetcher
-from proxy.outbox import Outbox
+from proxy.server import Fetcher, Outbox
 
 
 class V2rayNFetcher(Fetcher):
     scheme = 'v2rayn'
 
-    URL_RE = r'^([0-9a-zA-Z]+)://(.*)$'
+    URL_PATTERN = r'^([0-9a-zA-Z]+)://(.*)$'
 
-    url_re = re.compile(URL_RE)
+    url_re = re.compile(URL_PATTERN)
 
     @override(Fetcher)
     def fetch(self) -> list[Outbox]:

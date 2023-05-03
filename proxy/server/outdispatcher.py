@@ -1,24 +1,22 @@
-import random
 from typing import Any, Optional
 
 from typing_extensions import Self
 
-from .common import Loggable, SelfSerializable, override
-from .defaults import CONNECT_RETRY
-from .fetcher import Fetcher
-from .outbox import NULLOutbox, Outbox, TCPOutbox
-from .request import Request
+from ..common import Loggable, SelfSerializable, override
+from ..defaults import CONNECT_ATTEMPTS
+from ..stream import ProxyRequest, Stream
+from .base import Fetcher, Outbox
+from .common import BlockOutbox, DirectOutbox
 from .rulematcher import Rule, RuleMatcher
-from .stream import Stream
 
 
-class OutboxDispatcher(SelfSerializable, Loggable):
+class Outdispatcher(SelfSerializable, Loggable):
     rule_matcher: RuleMatcher
     block_outbox: Outbox
     direct_outbox: Outbox
     forward_outboxes: list[Outbox]
     fetchers: list[Fetcher]
-    connect_retry: int
+    connect_attempts: int
 
     def __init__(self,
                  rule_matcher: RuleMatcher,
@@ -26,18 +24,18 @@ class OutboxDispatcher(SelfSerializable, Loggable):
                  direct_outbox: Optional[Outbox] = None,
                  forward_outboxes: Optional[list[Outbox]] = None,
                  fetchers: Optional[list[Fetcher]] = None,
-                 connect_retry: int = CONNECT_RETRY,
+                 connect_attempts: int = CONNECT_ATTEMPTS,
                  **kwargs):
         super().__init__(**kwargs)
         self.rule_matcher = rule_matcher
         self.block_outbox = block_outbox \
-            if block_outbox is not None else NULLOutbox(name='BLOCK')
+            if block_outbox is not None else BlockOutbox(name='BLOCK')
         self.direct_outbox = direct_outbox \
-            if direct_outbox is not None else TCPOutbox(name='DIRECT')
+            if direct_outbox is not None else DirectOutbox(name='DIRECT')
         self.forward_outboxes = forward_outboxes \
             if forward_outboxes is not None else list()
         self.fetchers = fetchers if fetchers is not None else list()
-        self.connect_retry = connect_retry
+        self.connect_attempts = connect_attempts
 
     def check_outboxes(self):
         self.forward_outboxes = [
@@ -45,9 +43,9 @@ class OutboxDispatcher(SelfSerializable, Loggable):
         ]
         if len(self.forward_outboxes) == 0:
             self.logger.warning('auto add forward outbox')
-            self.forward_outboxes.append(TCPOutbox(name='FORWARD'))
-        self.connect_retry = \
-            min(self.connect_retry, len(self.forward_outboxes))
+            self.forward_outboxes.append(DirectOutbox(name='FORWARD'))
+        self.connect_attempts = \
+            min(self.connect_attempts, len(self.forward_outboxes))
 
     @override(SelfSerializable)
     def to_dict(self) -> dict[str, Any]:
@@ -61,8 +59,8 @@ class OutboxDispatcher(SelfSerializable, Loggable):
             'forward_outboxes':
             [outbox.to_dict() for outbox in self.forward_outboxes],
             'fetchers': [fetcher.to_dict() for fetcher in self.fetchers],
-            'connect_retry':
-            self.connect_retry,
+            'connect_attempts':
+            self.connect_attempts,
         }
 
     @classmethod
@@ -81,14 +79,14 @@ class OutboxDispatcher(SelfSerializable, Loggable):
         fetchers = list()
         for fetcher_obj in obj.get('fetchers') or list():
             fetchers.append(Fetcher.from_dict(fetcher_obj))
-        connect_retry = obj.get('connect_retry') or CONNECT_RETRY
+        connect_attempts = obj.get('connect_attempts') or CONNECT_ATTEMPTS
         return cls(
             rule_matcher=rule_matcher,
             block_outbox=block_outbox,
             direct_outbox=direct_outbox,
             forward_outboxes=forward_outboxes,
             fetchers=fetchers,
-            connect_retry=connect_retry,
+            connect_attempts=connect_attempts,
         )
 
     def dispatch(self, addr: str) -> list[Outbox]:
@@ -97,14 +95,10 @@ class OutboxDispatcher(SelfSerializable, Loggable):
             return [self.block_outbox]
         if rule == Rule.Direct:
             return [self.direct_outbox]
-        weights = [outbox.weight for outbox in self.forward_outboxes]
-        return random.choices(
-            self.forward_outboxes,
-            weights=weights,
-            k=self.connect_retry,
-        )
+        return Outbox.choices_by_weight(self.forward_outboxes,
+                                        k=self.connect_attempts)
 
-    async def connect(self, req: Request) -> Stream:
+    async def connect(self, req: ProxyRequest) -> Stream:
         for retry, outbox in enumerate(self.dispatch(req.addr[0])):
             self.logger.info('connect(%d) to %s via %s', retry, req, outbox)
             try:

@@ -2,8 +2,8 @@ CONFIG_FILE = 'config.json'
 
 INBOX_URL = 'http://localhost:1080'
 OUTBOX_URL = 'http://localhost:443'
-BLOCK_OUTBOX_URL = 'null://'
-DIRECT_OUTBOX_URL = 'tcp://'
+BLOCK_OUTBOX_URL = 'block://'
+DIRECT_OUTBOX_URL = 'direct://'
 
 TLS_INBOX_CERT_FILE = 'cert.pem'
 TLS_INBOX_KEY_FILE = 'key.pem'
@@ -14,10 +14,10 @@ TLS_OUTBOX_HOST = 'localhost'
 WS_OUTBOX_PATH = '/'
 WS_OUTBOX_HOST = 'localhost'
 
-RULES_DEFAULT = 'direct'
+RULES_FALLBACK = 'direct'
 RULES_FILE = 'rules.txt'
 
-CONNECT_RETRY = 3
+CONNECT_ATTEMPTS = 3
 
 WEIGHT_INITIAL = 10.0
 WEIGHT_MINIMAL = 1.0

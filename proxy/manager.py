@@ -8,19 +8,18 @@ from pprint import pprint
 from typing import Optional
 
 from .common import Loggable
-from .defaults import (BLOCK_OUTBOX_URL, CONFIG_FILE, CONNECT_RETRY,
+from .defaults import (BLOCK_OUTBOX_URL, CONFIG_FILE, CONNECT_ATTEMPTS,
                        DIRECT_OUTBOX_URL, INBOX_URL, LOG_DATE_FORMAT,
-                       LOG_FORMAT, RULES_DEFAULT, RULES_FILE,
+                       LOG_FORMAT, RULES_FALLBACK, RULES_FILE,
                        TLS_INBOX_CERT_FILE, TLS_INBOX_KEY_FILE,
                        TLS_INBOX_KEY_PWD, TLS_OUTBOX_CERT_FILE,
                        TLS_OUTBOX_HOST)
-from .outbox import Outbox
-from .proxyserver import ProxyServer
+from .server import Outbox, Server
 
 
 class Manager(Cmd, Loggable):
     config_file: str
-    proxy_server: ProxyServer
+    server: Server
 
     intro = 'Welcome to proxy cli. Type help or ? to list commands.\n'
     prompt = 'proxy cli $ '
@@ -43,9 +42,11 @@ class Manager(Cmd, Loggable):
                             '--direct-outbox-url',
                             default=DIRECT_OUTBOX_URL)
         parser.add_argument('-o', '--forward-outbox-urls', action='append')
-        parser.add_argument('-D', '--rules-default', default=RULES_DEFAULT)
+        parser.add_argument('-D', '--rules-default', default=RULES_FALLBACK)
         parser.add_argument('-F', '--rules-file', default=RULES_FILE)
-        parser.add_argument('-r', '--connect-retry', default=CONNECT_RETRY)
+        parser.add_argument('-A',
+                            '--connect-attempts',
+                            default=CONNECT_ATTEMPTS)
         parser.add_argument('-C',
                             '--tls-inbox-cert-file',
                             default=TLS_INBOX_CERT_FILE)
@@ -99,9 +100,9 @@ class Manager(Cmd, Loggable):
         tls_inbox_key_pwd = args.tls_inbox_key_pwd
         tls_outbox_cert_file = args.tls_outbox_cert_file
         tls_outbox_host = args.tls_outbox_host
-        rules_default = args.rules_default
+        rules_fallback = args.rules_fallback
         rules_file = args.rules_file
-        connect_retry = args.connect_retry
+        connect_attempts = args.connect_attempts
 
         forward_outboxes = [{
             'url': url,
@@ -117,9 +118,9 @@ class Manager(Cmd, Loggable):
                 'tls_key_file': tls_inbox_key_file,
                 'tls_key_pwd': tls_inbox_key_pwd,
             },
-            'outbox_dispatcher': {
+            'outdispatcher': {
                 'rule_matcher': {
-                    'rules_default': rules_default,
+                    'rules_fallback': rules_fallback,
                     'rules_file': rules_file,
                 },
                 'block_outbox': {
@@ -135,11 +136,11 @@ class Manager(Cmd, Loggable):
                     'tls_host': tls_outbox_host,
                 },
                 'forward_outboxes': forward_outboxes,
-                'country_retry': connect_retry,
+                'connect_attempts': connect_attempts,
             }
         }
 
-        self.proxy_server = ProxyServer.from_dict(obj)
+        self.server = Server.from_dict(obj)
 
     def load(self, config_file: Optional[str] = None):
         if config_file is None:
@@ -149,16 +150,16 @@ class Manager(Cmd, Loggable):
                 obj = json.load(f)
         else:
             obj = dict()
-        self.proxy_server = ProxyServer.from_dict(obj)
+        self.server = Server.from_dict(obj)
 
     def dump(self, config_file: Optional[str] = None):
         if config_file is None:
             config_file = self.config_file
         with open(config_file, 'w') as f:
-            json.dump(self.proxy_server.to_dict(), f)
+            json.dump(self.server.to_dict(), f)
 
     def outboxes(self, args: str, inverse: bool = False) -> list[Outbox]:
-        outboxes = self.proxy_server.outbox_dispatcher.forward_outboxes
+        outboxes = self.server.outdispatcher.forward_outboxes
         idxes = [int(idx) for idx in args.split()]
         idxes = [idx for idx in idxes if 0 <= idx < len(outboxes)]
         if len(idxes) == 0:
@@ -174,14 +175,14 @@ class Manager(Cmd, Loggable):
     def do_dump(self, args: str):
         args = args.strip()
         if args == '-':
-            pprint(self.proxy_server.to_dict())
+            pprint(self.server.to_dict())
         else:
             self.dump(args or self.config_file)
 
     def do_run(self, args: str):
         outboxes = self.outboxes(args)
-        self.proxy_server.outbox_dispatcher.forward_outboxes = outboxes
-        self.proxy_server.run()
+        self.server.outdispatcher.forward_outboxes = outboxes
+        self.server.run()
 
     def do_ls(self, args: str):
         outboxes = self.outboxes(args)
@@ -190,7 +191,7 @@ class Manager(Cmd, Loggable):
 
     def do_rm(self, args: str):
         outboxes = self.outboxes(args, inverse=True)
-        self.proxy_server.outbox_dispatcher.forward_outboxes = outboxes
+        self.server.outdispatcher.forward_outboxes = outboxes
         self.dump()
 
     def do_ping(self, args: str):
@@ -205,7 +206,7 @@ class Manager(Cmd, Loggable):
         self.dump()
 
     def do_fetch(self, args: str):
-        fetchers = self.proxy_server.outbox_dispatcher.fetchers
+        fetchers = self.server.outdispatcher.fetchers
         fetcher_names = args.split()
         if len(fetcher_names) != 0:
             fetchers = [
@@ -214,8 +215,8 @@ class Manager(Cmd, Loggable):
             ]
         for fetcher in fetchers:
             outboxes = fetcher.fetch()
-            for outbox in self.proxy_server.outbox_dispatcher.forward_outboxes:
+            for outbox in self.server.outdispatcher.forward_outboxes:
                 if outbox.fetcher != fetcher.name:
                     outboxes.append(outbox)
-            self.proxy_server.outbox_dispatcher.forward_outboxes = outboxes
+            self.server.outdispatcher.forward_outboxes = outboxes
         self.dump()
