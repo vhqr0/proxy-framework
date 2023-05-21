@@ -11,7 +11,7 @@ class ProtocolError(RuntimeError, StreamError):
     part: str
 
     def __init__(self, *breadcrumb: str):
-        super().__init__('error from protocol {}'.format('/'.join(breadcrumb)))
+        super().__init__('protocol error: ' + '/'.join(breadcrumb))
         self.breadcrumb = list(breadcrumb)
 
 

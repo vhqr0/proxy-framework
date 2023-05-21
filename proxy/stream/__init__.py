@@ -1,3 +1,5 @@
 # flake8: noqa
-from .base import (Acceptor, Connector, ProxyAcceptor, ProxyConnector,
-                   ProxyRequest, Stream, WrapAcceptor)
+from proxy.stream.acceptor import Acceptor, WrappedAcceptor
+from proxy.stream.connector import Connector
+from proxy.stream.proxy import ProxyAcceptor, ProxyConnector, ProxyRequest
+from proxy.stream.stream import Stream

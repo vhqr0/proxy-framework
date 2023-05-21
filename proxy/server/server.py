@@ -4,9 +4,12 @@ from typing import Any
 
 from typing_extensions import Self
 
-from ..common import Loggable, SelfSerializable, override
-from .base import Inbox
-from .outdispatcher import Outdispatcher
+from proxy.common.tcp import TCPAcceptor
+from proxy.iobox import Inbox
+from proxy.server.outdispatcher import Outdispatcher
+from proxy.utils.loggable import Loggable
+from proxy.utils.override import override
+from proxy.utils.serializable import SelfSerializable
 
 
 class Server(SelfSerializable, Loggable):
@@ -38,7 +41,7 @@ class Server(SelfSerializable, Loggable):
     def run(self):
         try:
             self.outdispatcher.rule_matcher.load_rules()
-            self.outdispatcher.check_outboxes()
+            self.outdispatcher.forward_outset.clean()
             asyncio.run(self.start_server())
         except Exception as e:
             self.logger.error('error while serving: %s', e)
@@ -70,7 +73,8 @@ class Server(SelfSerializable, Loggable):
     async def serve(self, reader: asyncio.StreamReader,
                     writer: asyncio.StreamWriter):
         try:
-            req = await self.inbox.accept_from_tcp(reader, writer)
+            req = await self.inbox.accept(
+                next_acceptor=TCPAcceptor(reader, writer))
         except Exception as e:
             self.logger.debug('except while accepting: %.60s', e)
             return

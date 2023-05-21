@@ -5,8 +5,10 @@ from typing import Any, Optional
 
 from typing_extensions import Self
 
-from ..common import Loggable, SelfSerializable, override
-from ..defaults import RULES_FALLBACK, RULES_FILE
+from proxy.defaults import RULES_FALLBACK, RULES_FILE
+from proxy.utils.loggable import Loggable
+from proxy.utils.override import override
+from proxy.utils.serializable import SelfSerializable
 
 
 class Rule(Enum):
@@ -60,7 +62,7 @@ class RuleMatcher(SelfSerializable, Loggable):
             self.logger.info('skip load rules file')
             return
         if not os.path.exists(self.rules_file):
-            self.logger.info('cannot find rules file')
+            self.logger.warning('cannot find rules file: %s', self.rules_file)
             return
         self.rules = dict()
         with open(self.rules_file) as f:
@@ -75,7 +77,7 @@ class RuleMatcher(SelfSerializable, Loggable):
                 except Exception as e:
                     self.logger.warning('except while loading rule %s: %s',
                                         line, e)
-        self.logger.info('load %d rules', len(self.rules))
+        self.logger.debug('load %d rules', len(self.rules))
 
     @cache
     def match(self, domain: str) -> Rule:

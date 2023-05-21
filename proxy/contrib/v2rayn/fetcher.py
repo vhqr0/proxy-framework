@@ -6,12 +6,13 @@ Links:
 import base64
 import json
 import re
+from typing import Any
 
 import requests
-from yarl import URL
 
-from proxy.common import override
-from proxy.server import Fetcher, Outbox
+from proxy.iobox import Fetcher, Outbox
+from proxy.utils.override import override
+from proxy.utils.url import URL
 
 
 class V2rayNFetcher(Fetcher):
@@ -20,6 +21,13 @@ class V2rayNFetcher(Fetcher):
     URL_PATTERN = r'^([0-9a-zA-Z]+)://(.*)$'
 
     url_re = re.compile(URL_PATTERN)
+
+    net_dict: dict[str, str] = {
+        'tcp+': 'tcp',
+        'tcp+tls': 'tls',
+        'ws+': 'ws',
+        'ws+tls': 'wss',
+    }
 
     @override(Fetcher)
     def fetch(self) -> list[Outbox]:
@@ -32,57 +40,50 @@ class V2rayNFetcher(Fetcher):
         outboxes = list()
         for url in urls:
             try:
+                url = url.strip()
+                if len(url) == 0:
+                    continue
                 url_match = self.url_re.match(url)
                 if url_match is None:
-                    self.logger.warning('invalid url: %s', url)
-                    continue
-                if url_match[1] != 'vmess':
-                    self.logger.warning('invalid scheme: %s', url_match[1])
-                    continue
+                    raise RuntimeError(f'invalid url: {url}')
+                scheme = url_match[1]
+                if scheme != 'vmess':
+                    raise RuntimeError(f'invalid scheme: {scheme}')
                 content = base64.decodebytes(url_match[2].encode()).decode()
-                data = json.loads(content)
-                if data['type'] != 'none':
-                    self.logger.warning('invalid type: %s', data['type'])
-                    continue
-                if data['net'] == 'tcp' and data['tls'] == '':
-                    net = 'tcp'
-                elif data['net'] == 'tcp' and data['tls'] == 'tls':
-                    net = 'tls'
-                elif data['net'] == 'ws' and data['tls'] == '':
-                    net = 'ws'
-                elif data['net'] == 'ws' and data['tls'] == 'tls':
-                    net = 'wss'
-                else:
-                    self.logger.warning('invalid net: %s %s', data['net'],
-                                        data['tls'])
-                    continue
-                outboxes.append(
-                    Outbox.from_dict({
-                        'scheme':
-                        'vmess',
-                        'url':
-                        str(
-                            URL.build(
-                                scheme='vmess',
-                                host=data['add'],
-                                port=data['port'],
-                            )),
-                        'name':
-                        data['ps'],
-                        'fetcher':
-                        self.name,
-                        'net':
-                        net,
-                        'ws_path':
-                        data['path'] or '/',
-                        'ws_host':
-                        data['host'] or data['add'],
-                        'tls_host':
-                        data.get('sni') or data['add'],
-                        'userid':
-                        data['id'],
-                    }))
+                outboxes.append(self.parse_data(json.loads(content)))
             except Exception as e:
                 self.logger.warning('except while fetching %s: %s', url, e)
 
         return outboxes
+
+    def parse_data(self, data: Any) -> Outbox:
+        dtype: str = data['type']
+        dnet: str = '{}+{}'.format(data['net'], data['tls'])
+        host: str = data['add']
+        port: int = data['port']
+        name: str = data['ps']
+        ws_path: str = data.get('path') or '/'
+        ws_host: str = data.get('host') or host
+        tls_host: str = data.get('sni') or host
+        userid: str = data['id']
+
+        if dtype != 'none':
+            raise RuntimeError(f'invalid type: {dtype}')
+
+        net = self.net_dict.get(dnet)
+        if net is None:
+            raise RuntimeError(f'invalid net: {dnet}')
+
+        url = str(URL(scheme='vmess', host=host, port=port))
+
+        return Outbox.from_dict({
+            'scheme': 'vmess',
+            'url': url,
+            'name': name,
+            'fetcher': self.name,
+            'net': net,
+            'ws_path': ws_path,
+            'ws_host': ws_host,
+            'tls_host': tls_host,
+            'userid': userid,
+        })

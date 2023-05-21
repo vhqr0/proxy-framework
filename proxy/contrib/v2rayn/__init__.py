@@ -1,3 +1,3 @@
 # flake8: noqa
-from .fetcher import V2rayNFetcher
-from .outbox import VmessOutbox
+import proxy.contrib.v2rayn.fetcher
+import proxy.contrib.v2rayn.vmess

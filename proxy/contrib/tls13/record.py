@@ -3,14 +3,14 @@ from struct import Struct
 
 from typing_extensions import Self
 
+from proxy.common.null import NULLStream
+from proxy.contrib.defaults import STREAM_TLS13_BUFSIZE
+from proxy.contrib.tls13.consts import (AlertDescription, AlertLevel,
+                                        ChangeCipherSpecType, ContentType,
+                                        HandshakeType, Version)
 from proxy.stream import Stream
 from proxy.stream.errors import BufferOverflowError, ProtocolError
-from proxy.stream.null import NULLStream
 from proxy.stream.structs import BStruct, IStruct
-
-from .consts import (AlertDescription, AlertLevel, ChangeCipherSpecType,
-                     ContentType, HandshakeType, Version)
-from .defaults import STREAM_TLS13_BUFSIZE
 
 BBStruct = Struct('!BB')
 BHHStruct = Struct('!BHH')
@@ -76,6 +76,6 @@ class Handshake:
         blen = stream.popI()
         btype, blen = (blen & 0xff000000) >> 24, blen & 0xfff
         buf = stream.popexactly(blen)
-        if len(stream.to_read) != 0:
+        if not stream.bempty():
             raise ProtocolError('tls', 'frame', 'remain')
         return cls(btype=HandshakeType(btype), buf=buf[4:])
