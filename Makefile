@@ -4,10 +4,6 @@
 build:
 	python3 -m build
 
-.PHONY: install
-install:
-	python3 -m pip install dist/p3-0.0.1.tar.gz
-
 # viz
 
 .PHONY: viz

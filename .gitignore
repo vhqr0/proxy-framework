@@ -1,5 +1,8 @@
 __pycache__
 
+/dist
+/p3.egg-info
+
 /domain-list-community
 
 /configs
