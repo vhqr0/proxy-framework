@@ -4,7 +4,7 @@ from typing import Any, Optional
 from typing_extensions import Self
 
 from p3.defaults import (WEIGHT_DECREASE_STEP, WEIGHT_INCREASE_STEP,
-                            WEIGHT_INITIAL, WEIGHT_MAXIMAL, WEIGHT_MINIMAL)
+                         WEIGHT_INITIAL, WEIGHT_MAXIMAL, WEIGHT_MINIMAL)
 from p3.utils.loggable import Loggable
 from p3.utils.override import override
 from p3.utils.serializable import DispatchedSerializable

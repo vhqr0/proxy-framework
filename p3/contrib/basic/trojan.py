@@ -5,8 +5,8 @@ from struct import Struct
 from p3.common.tcp import TCPConnector
 from p3.contrib.basic.socks5 import Atype, Cmd
 from p3.iobox import TLSCtxInbox, TLSCtxOutbox
-from p3.stream import (Acceptor, ProxyAcceptor, ProxyConnector,
-                          ProxyRequest, Stream)
+from p3.stream import (Acceptor, ProxyAcceptor, ProxyConnector, ProxyRequest,
+                       Stream)
 from p3.stream.errors import ProtocolError
 from p3.stream.structs import HStruct
 from p3.utils.override import override

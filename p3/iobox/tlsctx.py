@@ -2,8 +2,8 @@ import ssl
 from typing import Any
 
 from p3.defaults import (TLS_INBOX_CERT_FILE, TLS_INBOX_KEY_FILE,
-                            TLS_INBOX_KEY_PWD, TLS_OUTBOX_CERT_FILE,
-                            TLS_OUTBOX_HOST)
+                         TLS_INBOX_KEY_PWD, TLS_OUTBOX_CERT_FILE,
+                         TLS_OUTBOX_HOST)
 from p3.iobox.inbox import Inbox
 from p3.iobox.outbox import Outbox
 from p3.utils.override import override

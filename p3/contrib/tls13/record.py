@@ -6,8 +6,8 @@ from typing_extensions import Self
 from p3.common.null import NULLStream
 from p3.contrib.defaults import STREAM_TLS13_BUFSIZE
 from p3.contrib.tls13.consts import (AlertDescription, AlertLevel,
-                                        ChangeCipherSpecType, ContentType,
-                                        HandshakeType, Version)
+                                     ChangeCipherSpecType, ContentType,
+                                     HandshakeType, Version)
 from p3.stream import Stream
 from p3.stream.errors import BufferOverflowError, ProtocolError
 from p3.stream.structs import BStruct, IStruct

@@ -7,11 +7,11 @@ from pprint import pprint
 from typing import Optional
 
 from p3.defaults import (BLOCK_OUTBOX_URL, CONFIG_FILE, CONNECT_ATTEMPTS,
-                            DIRECT_OUTBOX_URL, INBOX_URL, LOG_DATE_FORMAT,
-                            LOG_FORMAT, RULES_FALLBACK, RULES_FILE,
-                            TLS_INBOX_CERT_FILE, TLS_INBOX_KEY_FILE,
-                            TLS_INBOX_KEY_PWD, TLS_OUTBOX_CERT_FILE,
-                            TLS_OUTBOX_HOST)
+                         DIRECT_OUTBOX_URL, INBOX_URL, LOG_DATE_FORMAT,
+                         LOG_FORMAT, RULES_FALLBACK, RULES_FILE,
+                         TLS_INBOX_CERT_FILE, TLS_INBOX_KEY_FILE,
+                         TLS_INBOX_KEY_PWD, TLS_OUTBOX_CERT_FILE,
+                         TLS_OUTBOX_HOST)
 from p3.server.server import Server
 from p3.utils.cmdwraps import cmdwraps
 from p3.utils.loggable import Loggable
