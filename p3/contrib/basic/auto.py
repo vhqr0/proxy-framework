@@ -15,7 +15,7 @@ class AutoAcceptor(HTTPAcceptor, Socks5Acceptor, ProxyAcceptor):
         async with stream.cm(exc_only=True):
             buf = await stream.peek()
             if len(buf) == 0:
-                raise ProtocolError('auto', 'emptycheck')
+                raise ProtocolError('auto', 'empty')
             if buf[0] == 5:
                 await self.dispatch_socks5(stream)
             else:

@@ -1,10 +1,22 @@
+"""Websocket protocol implementation.
+
+See RFC 6455 for more detials.
+
+Links:
+  https://www.rfc-editor.org/rfc/rfc6455
+"""
 import base64
 import random
-import re
+from dataclasses import dataclass
 from enum import IntEnum, unique
 from hashlib import sha1
+from http import HTTPStatus
 from struct import Struct
+from typing import Optional
 
+from typing_extensions import Self
+
+from p3.contrib.basic.http import HTTPRequest, HTTPResponse
 from p3.defaults import STREAM_BUFSIZE, WS_OUTBOX_HOST, WS_OUTBOX_PATH
 from p3.stream import Acceptor, Connector, Stream
 from p3.stream.errors import BufferOverflowError, ProtocolError
@@ -17,83 +29,156 @@ BBQStruct = Struct('!BBQ')
 
 @unique
 class WSOpcode(IntEnum):
-    Continue = 0
+    """
+    *  %x0 denotes a continuation frame
+    *  %x1 denotes a text frame
+    *  %x2 denotes a binary frame
+    *  %x3-7 are reserved for further non-control frames
+    *  %x8 denotes a connection close
+    *  %x9 denotes a ping
+    *  %xA denotes a pong
+    *  %xB-F are reserved for further control frames
+    """
+    Continuation = 0
     Text = 1
     Binary = 2
-    Close = 8
+    ConnectionClose = 8
     Ping = 9
     Pong = 10
 
 
+@dataclass
+class WSFrame:
+    """
+     0                   1                   2                   3
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    +-+-+-+-+-------+-+-------------+-------------------------------+
+    |F|R|R|R| opcode|M| Payload len |    Extended payload length    |
+    |I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
+    |N|V|V|V|       |S|             |   (if payload len==126/127)   |
+    | |1|2|3|       |K|             |                               |
+    +-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
+    |     Extended payload length continued, if payload len == 127  |
+    + - - - - - - - - - - - - - - - +-------------------------------+
+    |                               |Masking-key, if MASK set to 1  |
+    +-------------------------------+-------------------------------+
+    | Masking-key (continued)       |          Payload Data         |
+    +-------------------------------- - - - - - - - - - - - - - - - +
+    :                     Payload Data continued ...                :
+    + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
+    |                     Payload Data continued ...                |
+    +---------------------------------------------------------------+
+    """
+    fin: bool
+    mask: bool
+    key: Optional[bytes]
+    opcode: WSOpcode
+    payload: bytes
+
+    def do_mask(self):
+        if self.mask:
+            return
+        self.mask = True
+        self._mask_payload()
+
+    def do_unmask(self):
+        if not self.mask:
+            return
+        self.mask = False
+        self._mask_payload()
+
+    def _mask_payload(self):
+        if self.key is None:
+            self.key = random.randbytes(4)
+        self.payload = bytes(c ^ self.key[i % 4]
+                             for i, c in enumerate(self.payload))
+
+    @classmethod
+    async def read_from_stream(cls, stream: Stream) -> Self:
+        _opcode, plen = await stream.read_struct(BBStruct)
+        if _opcode & 0x70 != 0:
+            raise ProtocolError('ws', 'frame', 'rsv')
+        fin, opcode = bool(_opcode & 0x80), WSOpcode(_opcode & 0xf)
+        mask, plen = bool(plen & 0x80), plen & 0x7f
+        if plen == 126:
+            plen = await stream.readH()
+        elif plen == 127:
+            plen = await stream.readQ()
+        key: Optional[bytes] = None
+        if mask:
+            key = await stream.readexactly(4)
+        payload = await stream.readexactly(plen)
+        return cls(
+            fin=fin,
+            mask=mask,
+            key=key,
+            opcode=opcode,
+            payload=payload,
+        )
+
+    def pack(self) -> bytes:
+        opcode = int(self.opcode)
+        if self.fin:
+            opcode += 0x80
+        plen = len(self.payload)
+        mask = 0x80 if self.mask else 0
+        if plen <= 125:
+            header = BBStruct.pack(opcode, mask + plen)
+        elif plen <= 65535:
+            header = BBHStruct.pack(opcode, mask + 126, plen)
+        else:
+            header = BBQStruct.pack(opcode, mask + 127, plen)
+        if self.mask:
+            assert self.key is not None
+            header += self.key
+        return header + self.payload
+
+
 class WSStream(Stream):
-    mask_payload: bool
+    do_mask_payload: bool
+    ping_received: bool
+    pong_received: bool
 
     ensure_next_layer = True
 
-    def __init__(self, mask_payload: bool = True, **kwargs):
+    def __init__(self, do_mask_payload: bool = True, **kwargs):
         super().__init__(**kwargs)
-        self.mask_payload = mask_payload
+        self.do_mask_payload = do_mask_payload
+        self.ping_received = False
+        self.pong_received = False
 
-    def ws_write(self, opcode: WSOpcode, buf: bytes, fin: bool = True):
+    async def ws_read_data_frame(self) -> WSFrame:
         assert self.next_layer is not None
-        flags = int(opcode)
-        if fin:
-            flags += 0x80
-        if self.mask_payload:
-            mask = 0x80
-            mask_key = random.randbytes(4)
-            buf = bytes(c ^ mask_key[i % 4] for i, c in enumerate(buf))
-        else:
-            mask = 0
-            mask_key = b''
-        blen = len(buf)
-        if blen <= 125:
-            header = BBStruct.pack(flags, mask + blen)
-        elif blen <= 65535:
-            header = BBHStruct.pack(flags, mask + 126, blen)
-        else:
-            header = BBQStruct.pack(flags, mask + 127, blen)
-        buf = header + mask_key + buf
-        self.next_layer.write(buf)
-
-    async def ws_read(self) -> tuple[WSOpcode, bytes, bool]:
-        assert self.next_layer is not None
-        flags, blen = await self.next_layer.read_struct(BBStruct)
-        fin, opcode = flags & 0x80, WSOpcode(flags & 0xf)
-        mask, blen = blen & 0x80, blen & 0x7f
-        if blen == 126:
-            blen = await self.next_layer.readH()
-        elif blen == 127:
-            blen = await self.next_layer.readQ()
-        if mask != 0:
-            mask_key = await self.next_layer.readexactly(4)
-            buf = await self.next_layer.readexactly(blen)
-            buf = bytes(c ^ mask_key[i % 4] for i, c in enumerate(buf))
-        else:
-            buf = await self.next_layer.readexactly(blen)
-        return opcode, buf, (fin != 0)
+        while True:
+            frame = await WSFrame.read_from_stream(self.next_layer)
+            if frame.opcode is WSOpcode.Continuation:
+                continue
+            if frame.opcode is WSOpcode.Pong:
+                self.pong_received = True
+                continue
+            if frame.opcode is WSOpcode.Ping:
+                self.ping_received = True
+                frame.opcode = WSOpcode.Pong
+                if self.do_mask_payload:
+                    frame.do_mask()
+                self.next_layer.write(frame.pack())
+                continue
+            if frame.opcode in (WSOpcode.Text, WSOpcode.Binary,
+                                WSOpcode.ConnectionClose):
+                return frame
+            raise ProtocolError('ws', 'frame', 'opcode', frame.opcode.name)
 
     async def ws_read_data(self) -> tuple[WSOpcode, bytes, bool]:
-        while True:
-            opcode, buf, fin = await self.ws_read()
-            if opcode in (WSOpcode.Continue, WSOpcode.Pong):
-                continue
-            if opcode == WSOpcode.Ping:
-                self.ws_write(WSOpcode.Pong, buf)
-                await self.drain()
-                continue
-            if opcode == WSOpcode.Close:
-                return WSOpcode.Close, b'', True
-            if opcode in (WSOpcode.Text, WSOpcode.Binary):
-                return opcode, buf, fin
-            raise ProtocolError('ws', 'frame', 'opcode', opcode.name)
+        frame = await self.ws_read_data_frame()
+        frame.do_unmask()
+        return frame.opcode, frame.payload, frame.fin
 
-    async def ws_read_msg(self) -> tuple[int, bytes]:
+    async def ws_read_msg(self) -> tuple[WSOpcode, bytes]:
         opcode, buf, fin = await self.ws_read_data()
         while not fin:
             next_opcode, next_buf, fin = await self.ws_read_data()
             if next_opcode != opcode:
-                raise ProtocolError('ws', 'frame', 'opcode', opcode.name)
+                raise ProtocolError('ws', 'frame', 'fin')
             buf += next_buf
             if len(buf) > STREAM_BUFSIZE:
                 raise BufferOverflowError(len(buf))
@@ -101,7 +186,17 @@ class WSStream(Stream):
 
     @override(Stream)
     def write_primitive(self, buf: bytes):
-        self.ws_write(WSOpcode.Binary, buf)
+        assert self.next_layer is not None
+        frame = WSFrame(
+            fin=False,
+            mask=False,
+            key=None,
+            opcode=WSOpcode.Binary,
+            payload=buf,
+        )
+        if self.do_mask_payload:
+            frame.do_mask()
+        self.next_layer.write(frame.pack())
 
     @override(Stream)
     async def read_primitive(self) -> bytes:
@@ -109,7 +204,9 @@ class WSStream(Stream):
         buf = await self.next_layer.peek()
         if len(buf) == 0:
             return b''
-        _, buf = await self.ws_read_msg()
+        opcode, buf = await self.ws_read_msg()
+        if opcode is WSOpcode.ConnectionClose:
+            return b''
         return buf
 
 
@@ -117,19 +214,27 @@ class WSConnector(Connector):
     path: str
     host: str
 
-    REQ_FORMAT = ('GET {} HTTP/1.1\r\n'
-                  'Host: {}\r\n'
-                  'Upgrade: websocket\r\n'
-                  'Connection: Upgrade\r\n'
-                  'Sec-WebSocket-Key: {}\r\n'
-                  'Sec-WebSocket-Version: 13\r\n\r\n')
+    REQ_FORMAT_HEADERS = {
+        'Host': '{}',
+        'Upgrade': 'websocket',
+        'Connection': 'Upgrade',
+        'Sec-WebSocket-Key': '{}',
+        'Sec-WebSocket-Version': '13',
+    }
+    REQ_FORMAT = HTTPRequest(
+        method='GET',
+        path='{}',
+        headers=REQ_FORMAT_HEADERS,
+    ).pack_str()
 
     ensure_next_layer = True
 
-    def __init__(self,
-                 path: str = WS_OUTBOX_PATH,
-                 host: str = WS_OUTBOX_HOST,
-                 **kwargs):
+    def __init__(
+        self,
+        path: str = WS_OUTBOX_PATH,
+        host: str = WS_OUTBOX_HOST,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.path = path
         self.host = host
@@ -141,9 +246,10 @@ class WSConnector(Connector):
         req = self.REQ_FORMAT.format(self.path, self.host, key)
         next_stream = await self.next_layer.connect(rest=req.encode())
         async with next_stream.cm(exc_only=True):
-            headers = await next_stream.readuntil(b'\r\n\r\n', strip=True)
-            if not headers.startswith(b'HTTP/1.1 101'):
-                raise ProtocolError('ws', 'header', 'status')
+            resp = await HTTPResponse.read_from_stream(next_stream)
+            status = resp.statuscode
+            if status != HTTPStatus.SWITCHING_PROTOCOLS:
+                raise ProtocolError('ws', 'status', status.name)
             stream = WSStream(next_layer=next_stream)
             if len(rest) != 0:
                 await stream.writedrain(rest)
@@ -153,21 +259,17 @@ class WSConnector(Connector):
 class WSAcceptor(Acceptor):
     path: str
     host: str
+    protocols: list[str]
 
-    WS_RES_FORMAT = ('{} 101 Switching Protocols\r\n'
-                     'Upgrade: websocket\r\n'
-                     'Connection: Upgrade\r\n'
-                     'Sec-WebSocket-Accept: {}\r\n'
-                     'Sec-WebSocket-Version: 13\r\n\r\n')
-    HTTP_REQ_PATTERN = r'^GET ([^ ]+) (HTTP/[^ \r\n]+)\r\n'
-    HTTP_HOST_PATTERN = (r'\r\nHost: ([^ :\[\]\r\n]+|\[[:0-9a-fA-F]+\])'
-                         r'(:([0-9]+))?')
-    WS_KEY_PATTERN = r'\r\nSec-WebSocket-Key: ([a-zA-Z+/=]*)'
-    WS_MAGIC = '258EAFA5-E914-47DA- 95CA-C5AB0DC85B11'
-
-    http_req_re = re.compile(HTTP_REQ_PATTERN)
-    http_host_re = re.compile(HTTP_HOST_PATTERN)
-    ws_key_re = re.compile(WS_KEY_PATTERN)
+    RESP_FORMAT_HEADERS = {
+        'Upgrade': 'websocket',
+        'Connection': 'Upgrade',
+        'Sec-WebSocket-Accept': '{}',
+        'Sec-WebSocket-Version': '13',
+    }
+    RESP_FORMAT = HTTPResponse(
+        status=HTTPStatus.SWITCHING_PROTOCOLS).pack_str()
+    WS_MAGIC = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 
     ensure_next_layer = True
 
@@ -176,18 +278,27 @@ class WSAcceptor(Acceptor):
         assert self.next_layer is not None
         next_stream = await self.next_layer.accept()
         async with next_stream.cm(exc_only=True):
-            buf = await next_stream.readuntil(b'\r\n\r\n', strip=True)
-            headers = buf.decode()
-            req_match = self.http_req_re.search(headers)
-            host_match = self.http_host_re.search(headers)
-            key_match = self.ws_key_re.search(headers)
-            if req_match is None or host_match is None or key_match is None:
-                raise ProtocolError('ws', 'header')
-            path, ver, host, key = \
-                req_match[1], req_match[2], host_match[1], key_match[1]
+            req = await HTTPRequest.read_from_stream(next_stream)
+            if req.version.upper() != 'HTTP/1.1':
+                raise ProtocolError('http', 'version', req.version)
+            if req.method.upper() != 'GET':
+                raise ProtocolError('ws', 'method', req.method)
+            if req.headers['Connection'] != 'Upgrade' or \
+               req.headers['Upgrade'] != 'websocket':
+                raise ProtocolError('ws', 'upgrade')
+            version = req.headers['Sec-WebSocket-Version']
+            key = req.headers['Sec-WebSocket-Key']
+            if version != '13':
+                raise ProtocolError('ws', 'version', version)
             key_hash = sha1((key + self.WS_MAGIC).encode()).digest()
             accept = base64.b64encode(key_hash).decode()
-            res = self.WS_RES_FORMAT.format(ver, accept)
-            await next_stream.writedrain(res.encode())
-            self.path, self.host = path, host
-            return WSStream(mask_payload=False, next_layer=next_stream)
+            resp = self.RESP_FORMAT.format(accept).encode()
+            await next_stream.writedrain(resp)
+            protocols = list()
+            protocol = req.headers.get('Sec-WebSocket-Protocol')
+            if protocol is not None:
+                for s in protocol.split(','):
+                    protocols.append(s.strip())
+            self.path = req.path
+            self.host = req.host
+            self.protocols = protocols
