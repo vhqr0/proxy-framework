@@ -3,19 +3,19 @@ format: yapf isort
 
 mypy:
 	mypy --ignore-missing-imports --check-untyped-defs manage.py
-	mypy --ignore-missing-imports --check-untyped-defs -m proxy.contrib.tls13
+	mypy --ignore-missing-imports --check-untyped-defs -m p3.contrib.tls13
 
 flake8:
-	flake8 proxy
+	flake8 p3
 
 yapf:
-	yapf -i -r proxy
+	yapf -i -r p3
 
 isort:
-	isort proxy
+	isort p3
 
 build:
 	python3 -m build
 
 viz:
-	pyreverse -m n -k --colorized -o png proxy
+	pyreverse -m n -k --colorized -o png p3
