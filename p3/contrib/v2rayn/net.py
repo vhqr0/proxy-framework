@@ -16,20 +16,25 @@ class V2rayNNetConnector(Connector):
     ws_path: str
     ws_host: str
     tls_host: str
+    tls_protocols: str
 
-    def __init__(self,
-                 addr: tuple[str, int],
-                 net: str = 'tcp',
-                 ws_path: str = WS_OUTBOX_PATH,
-                 ws_host: str = WS_OUTBOX_HOST,
-                 tls_host: str = TLS_OUTBOX_HOST,
-                 **kwargs):
+    def __init__(
+        self,
+        addr: tuple[str, int],
+        net: str = 'tcp',
+        ws_path: str = WS_OUTBOX_PATH,
+        ws_host: str = WS_OUTBOX_HOST,
+        tls_host: str = TLS_OUTBOX_HOST,
+        tls_protocols: str = '',
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.addr = addr
         self.net = net
         self.ws_path = ws_path
         self.ws_host = ws_host
         self.tls_host = tls_host
+        self.tls_protocols = tls_protocols
 
     @override(Connector)
     async def connect(self, rest: bytes = b'') -> Stream:
@@ -38,6 +43,9 @@ class V2rayNNetConnector(Connector):
             tls_ctx = ssl.create_default_context()
             tls_ctx.check_hostname = False
             tls_ctx.verify_mode = ssl.CERT_NONE
+            if len(self.tls_protocols) != 0:
+                protocols = self.tls_protocols.split(',')
+                tls_ctx.set_alpn_protocols(protocols)
             tcp_extra_kwargs['ssl'] = tls_ctx
             tcp_extra_kwargs['server_hostname'] = self.tls_host
         connector: Connector
@@ -59,21 +67,36 @@ class V2rayNNetCtxOutbox(Outbox, ABC):
     ws_path: str
     ws_host: str
     tls_host: str
+    tls_protocols: str
 
-    def __init__(self,
-                 net: str = 'tcp',
-                 ws_path: str = WS_OUTBOX_PATH,
-                 ws_host: str = WS_OUTBOX_HOST,
-                 tls_host: str = TLS_OUTBOX_HOST,
-                 **kwargs):
+    def __init__(
+        self,
+        net: str = 'tcp',
+        ws_path: str = WS_OUTBOX_PATH,
+        ws_host: str = WS_OUTBOX_HOST,
+        tls_host: str = TLS_OUTBOX_HOST,
+        tls_protocols: str = '',
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.net = net
         self.ws_path = ws_path
         self.ws_host = ws_host
         self.tls_host = tls_host
+        self.tls_protocols = tls_protocols
 
     def __str__(self) -> str:
         return '<{} {} {}>'.format(self.net, self.name, self.weight)
+
+    def v2rayn_net_connector(self) -> V2rayNNetConnector:
+        return V2rayNNetConnector(
+            addr=self.url.addr,
+            net=self.net,
+            ws_path=self.ws_path,
+            ws_host=self.ws_host,
+            tls_host=self.tls_host,
+            tls_protocols=self.tls_protocols,
+        )
 
     @override(Outbox)
     def to_dict(self) -> dict[str, Any]:
@@ -82,6 +105,7 @@ class V2rayNNetCtxOutbox(Outbox, ABC):
         obj['ws_path'] = self.ws_path
         obj['ws_host'] = self.ws_host
         obj['tls_host'] = self.tls_host
+        obj['tls_protocols'] = self.tls_protocols
         return obj
 
     @classmethod
@@ -92,4 +116,5 @@ class V2rayNNetCtxOutbox(Outbox, ABC):
         kwargs['ws_path'] = obj.get('ws_path') or WS_OUTBOX_PATH
         kwargs['ws_host'] = obj.get('ws_host') or WS_OUTBOX_HOST
         kwargs['tls_host'] = obj.get('tls_host') or TLS_OUTBOX_HOST
+        kwargs['tls_protocols'] = obj.get('tls_protocols') or ''
         return kwargs

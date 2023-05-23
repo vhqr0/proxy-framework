@@ -101,6 +101,13 @@ class Stream(Layerable['Stream'], Loggable, ABC):
             self.buf = await self.read_primitive()
         return self.buf
 
+    async def readatmost(self, n: int) -> bytes:
+        buf = await self.read()
+        if len(buf) > n:
+            self.push(buf[n:])
+            buf = buf[:n]
+        return buf
+
     async def readatleast(self, n: int) -> bytes:
         if n > STREAM_BUFSIZE:
             raise BufferOverflowError(n)

@@ -18,7 +18,7 @@ from p3.common.tcp import TCPConnector
 from p3.iobox import Outbox, TLSCtxOutbox
 from p3.stream import ProxyAcceptor, ProxyConnector, ProxyRequest, Stream
 from p3.stream.errors import ProtocolError
-from p3.stream.structs import BStruct, HStruct
+from p3.stream.structs import HStruct
 from p3.utils.override import override
 
 BBStruct = Struct('!BB')
@@ -114,8 +114,8 @@ class Socks5Addr:
     atyp: Socks5Atyp
     addr: tuple[str, int]
 
-    IPv4Struct = Struct('!4sH')
-    IPv6Struct = Struct('!16sH')
+    IPv4Struct = Struct('!B4sH')
+    IPv6Struct = Struct('!B16sH')
 
     @classmethod
     async def read_from_stream(cls, stream: Stream) -> Self:
@@ -146,12 +146,10 @@ class Socks5Addr:
                 HStruct.pack(port)
         elif self.atyp is Socks5Atyp.IPV4:
             addr_bytes = socket.inet_pton(socket.AF_INET, addr)
-            return BStruct.pack(self.atyp) + \
-                self.IPv4Struct.pack(addr_bytes, port)
+            return self.IPv4Struct.pack(self.atyp, addr_bytes, port)
         elif self.atyp is Socks5Atyp.IPV6:
             addr_bytes = socket.inet_pton(socket.AF_INET6, addr)
-            return BStruct.pack(self.atyp) + \
-                self.IPv6Struct.pack(addr_bytes, port)
+            return self.IPv6Struct.pack(self.atyp, addr_bytes, port)
         else:
             raise ProtocolError('socks5', 'addr', 'atyp', self.atyp.name)
 

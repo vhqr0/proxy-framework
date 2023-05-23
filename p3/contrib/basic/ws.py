@@ -302,3 +302,4 @@ class WSAcceptor(Acceptor):
             self.path = req.path
             self.host = req.host
             self.protocols = protocols
+            return WSStream(next_layer=next_stream)

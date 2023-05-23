@@ -101,6 +101,7 @@ class HTTPRequest(HTTPHeaders):
     @override(HTTPHeaders)
     async def read_from_stream(cls, stream: Stream) -> Self:
         headers = await HTTPHeaders.read_from_stream(stream)
+        assert headers.firstline is not None
         method, path, version = headers.firstline.split()
         return cls(
             method=method,
@@ -147,6 +148,7 @@ class HTTPResponse(HTTPHeaders):
     @override(HTTPHeaders)
     async def read_from_stream(cls, stream: Stream) -> Self:
         headers = await HTTPHeaders.read_from_stream(stream)
+        assert headers.firstline is not None
         version, status, reason = headers.firstline.split(maxsplit=2)
         return cls(
             version=version,
@@ -160,7 +162,7 @@ class HTTPResponse(HTTPHeaders):
     def pack_firstline(self):
         status = self.status
         if isinstance(status, HTTPStatus):
-            status = str(int(status))
+            status = str(status.value)
         self.firstline = '{} {} {}'.format(self.version, status, self.reason)
 
 
