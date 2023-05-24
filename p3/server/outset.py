@@ -3,8 +3,9 @@ from typing import Any, Optional
 from typing_extensions import Self
 
 from p3.common.tcp import DirectOutbox
-from p3.defaults import CONNECT_ATTEMPTS
+from p3.defaults import CONNECT_ATTEMPTS, PING_TIMEOUT, PING_URL
 from p3.iobox import Fetcher, Outbox
+from p3.server.ping import Ping, ProxyPing, TcpPing
 from p3.utils.loggable import Loggable
 from p3.utils.override import override
 from p3.utils.serializable import SelfSerializable
@@ -80,8 +81,25 @@ class Outset(SelfSerializable, Loggable):
     def ls(self):
         Outbox.ls_all(self.outboxes)
 
-    def ping(self):
-        Outbox.ping_all(self.outboxes, verbose=True)
+    def ping(
+        self,
+        level: str = 'proxy',
+        timeout: float = PING_TIMEOUT,
+        url: str = PING_URL,
+        verbose: bool = False,
+    ):
+        ping_cls: type[Ping]
+        if level == 'proxy':
+            ping_cls = ProxyPing
+        elif level == 'tcp':
+            ping_cls = TcpPing
+        else:
+            raise ValueError(f'invalid level: {level}')
+        Outbox.ping_all(
+            self.outboxes,
+            ping_cls(timeout=timeout, url=url).ping,
+            verbose=verbose,
+        )
 
     def fetch(self, names: Optional[list[str]] = None):
         for fetcher in self.fetchers:

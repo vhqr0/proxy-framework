@@ -18,6 +18,9 @@ WS_OUTBOX_PATH = '/'
 RULES_FALLBACK = 'direct'
 RULES_FILE = 'rules.txt'
 
+PING_TIMEOUT = 3.0
+PING_URL = 'http://www.google.com:80'
+
 CONNECT_ATTEMPTS = 3
 
 WEIGHT_INITIAL = 10.0

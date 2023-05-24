@@ -1,4 +1,4 @@
-import socket
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from timeit import timeit
 from typing import Any, Optional
@@ -9,7 +9,6 @@ from p3.utils.loggable import Loggable
 from p3.utils.override import override
 from p3.utils.serializable import DispatchedSerializable
 from p3.utils.tabularable import Tabularable
-from p3.utils.url import URL
 from p3.utils.weightable import Weightable
 
 
@@ -37,7 +36,6 @@ class Delay:
 
 
 class Pingable(Weightable, Tabularable, Loggable):
-    url: URL
     delay: Delay
 
     ping_skip: bool = False
@@ -65,18 +63,14 @@ class Pingable(Weightable, Tabularable, Loggable):
             kwargs['delay'] = Delay(delay)
         return kwargs
 
-    def ping_connect(self):
-        sock = socket.create_connection(self.url.addr, 2)
-        sock.close()
-
-    def ping(self, verbose: bool = False):
+    def ping(self, ping_func: Callable[[Self], None], verbose: bool = False):
 
         if self.ping_skip:
             self.delay.set(0.0)
             self.weight.reset()
         else:
             try:
-                delay = timeit(self.ping_connect, number=1)
+                delay = timeit(lambda: ping_func(self), number=1)
                 self.delay.set(delay)
                 self.weight.reset()
             except Exception:
@@ -87,6 +81,14 @@ class Pingable(Weightable, Tabularable, Loggable):
             print(self.summary())
 
     @classmethod
-    def ping_all(cls, objs: list[Self], verbose: bool = False):
+    def ping_all(
+        cls,
+        outboxes: list[Self],
+        ping_func: Callable[[Self], None],
+        verbose: bool = False,
+    ):
         with ThreadPoolExecutor() as executor:
-            executor.map(lambda peer: peer.ping(verbose=verbose), objs)
+            executor.map(
+                lambda outbox: outbox.ping(ping_func, verbose=verbose),
+                outboxes,
+            )

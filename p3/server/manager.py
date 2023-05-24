@@ -8,8 +8,8 @@ from typing import Optional
 
 from p3.defaults import (BLOCK_OUTBOX_URL, CONFIG_FILE, CONNECT_ATTEMPTS,
                          DIRECT_OUTBOX_URL, INBOX_URL, LOG_DATE_FORMAT,
-                         LOG_FORMAT, RULES_FALLBACK, RULES_FILE,
-                         TLS_INBOX_CERT_FILE, TLS_INBOX_KEY_FILE,
+                         LOG_FORMAT, PING_TIMEOUT, PING_URL, RULES_FALLBACK,
+                         RULES_FILE, TLS_INBOX_CERT_FILE, TLS_INBOX_KEY_FILE,
                          TLS_INBOX_KEY_PWD, TLS_OUTBOX_CERT_FILE,
                          TLS_OUTBOX_HOST, TLS_OUTBOX_PROTOCOLS)
 from p3.server.server import Server
@@ -199,11 +199,25 @@ class Manager(Cmd, Loggable):
             self.outset.select(args.idxes)
         self.outset.ls()
 
-    @cmdwraps([(['idxes'], {'nargs': argparse.REMAINDER, 'type': int})])
+    @cmdwraps([
+        (['-l', '--level'], {
+            'default': 'proxy'
+        }),
+        (['-t', '--timeout'], {
+            'type': float,
+            'default': PING_TIMEOUT
+        }),
+        (['-u', '--url'], {
+            'default': PING_URL
+        }),
+    ])
     def do_ping(self, args: argparse.Namespace):
-        if args.idxes:
-            self.outset.select(args.idxes)
-        self.outset.ping()
+        self.outset.ping(
+            level=args.level,
+            timeout=args.timeout,
+            url=args.url,
+            verbose=True,
+        )
         self.dump()
 
     @cmdwraps([(['names'], {'nargs': argparse.REMAINDER})])
