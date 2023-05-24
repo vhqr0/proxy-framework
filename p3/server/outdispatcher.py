@@ -81,4 +81,4 @@ class Outdispatcher(SelfSerializable, Loggable):
                 outbox.weight.decrease()
                 self.logger.debug('connect(%d) to %s via %s: %.60s', retry,
                                   req, outbox, e)
-        raise RuntimeError('connect retry exceeded')
+        raise RuntimeError('exceeded connect attempts')

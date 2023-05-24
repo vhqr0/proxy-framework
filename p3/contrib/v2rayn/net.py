@@ -1,6 +1,6 @@
 import ssl
 from abc import ABC
-from typing import Any
+from typing import Any, Optional
 
 from p3.common.tcp import TCPConnector
 from p3.contrib.basic.ws import WSConnector
@@ -18,6 +18,7 @@ class V2rayNNetConnector(Connector):
     ws_path: str
     tls_host: str
     tls_protocols: str
+    tls_ctx: Optional[ssl.SSLContext]
 
     def __init__(
         self,
@@ -27,6 +28,7 @@ class V2rayNNetConnector(Connector):
         ws_path: str = WS_OUTBOX_PATH,
         tls_host: str = TLS_OUTBOX_HOST,
         tls_protocols: str = TLS_OUTBOX_PROTOCOLS,
+        tls_ctx: Optional[ssl.SSLContext] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -36,18 +38,15 @@ class V2rayNNetConnector(Connector):
         self.ws_path = ws_path
         self.tls_host = tls_host
         self.tls_protocols = tls_protocols
+        self.tls_ctx = tls_ctx
 
     @override(Connector)
     async def connect(self, rest: bytes = b'') -> Stream:
         tcp_extra_kwargs: dict[str, Any] = dict()
         if self.net in ('tls', 'wss'):
-            tls_ctx = ssl.create_default_context()
-            tls_ctx.check_hostname = False
-            tls_ctx.verify_mode = ssl.CERT_NONE
-            if len(self.tls_protocols) != 0:
-                protocols = self.tls_protocols.split(',')
-                tls_ctx.set_alpn_protocols(protocols)
-            tcp_extra_kwargs['ssl'] = tls_ctx
+            if self.tls_ctx is None:
+                raise RuntimeError('tls_ctx cannot be none')
+            tcp_extra_kwargs['ssl'] = self.tls_ctx
             tcp_extra_kwargs['server_hostname'] = self.tls_host
         connector: Connector
         connector = TCPConnector(
@@ -69,6 +68,7 @@ class V2rayNNetCtxOutbox(Outbox, ABC):
     ws_path: str
     tls_host: str
     tls_protocols: str
+    tls_ctx: ssl.SSLContext
 
     def __init__(
         self,
@@ -85,6 +85,12 @@ class V2rayNNetCtxOutbox(Outbox, ABC):
         self.ws_path = ws_path
         self.tls_host = tls_host
         self.tls_protocols = tls_protocols
+        self.tls_ctx = ssl.create_default_context()
+        self.tls_ctx.check_hostname = False
+        self.tls_ctx.verify_mode = ssl.CERT_NONE
+        if len(self.tls_protocols) != 0:
+            protocols = self.tls_protocols.split(',')
+            self.tls_ctx.set_alpn_protocols(protocols)
 
     def __str__(self) -> str:
         return '<{} {} {}>'.format(self.net, self.name, self.weight)
@@ -97,6 +103,7 @@ class V2rayNNetCtxOutbox(Outbox, ABC):
             ws_path=self.ws_path,
             tls_host=self.tls_host,
             tls_protocols=self.tls_protocols,
+            tls_ctx=self.tls_ctx,
         )
 
     @override(Outbox)
