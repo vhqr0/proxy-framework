@@ -211,8 +211,8 @@ class WSStream(Stream):
 
 
 class WSConnector(Connector):
-    path: str
     host: str
+    path: str
 
     REQ_FORMAT_HEADERS = {
         'Host': '{}',
@@ -231,13 +231,13 @@ class WSConnector(Connector):
 
     def __init__(
         self,
-        path: str = WS_OUTBOX_PATH,
         host: str = WS_OUTBOX_HOST,
+        path: str = WS_OUTBOX_PATH,
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.path = path
         self.host = host
+        self.path = path
 
     @override(Connector)
     async def connect(self, rest: bytes = b'') -> Stream:
@@ -257,8 +257,8 @@ class WSConnector(Connector):
 
 
 class WSAcceptor(Acceptor):
-    path: str
     host: str
+    path: str
     protocols: list[str]
 
     RESP_FORMAT_HEADERS = {
@@ -299,7 +299,7 @@ class WSAcceptor(Acceptor):
             if protocol is not None:
                 for s in protocol.split(','):
                     protocols.append(s.strip())
-            self.path = req.path
             self.host = req.host
+            self.path = req.path
             self.protocols = protocols
             return WSStream(next_layer=next_stream)

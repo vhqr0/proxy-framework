@@ -88,17 +88,19 @@ class VPN:
 
     logger = logging.getLogger('vpn')
 
-    def __init__(self,
-                 key: Union[str, bytes],
-                 peer_key: Union[str, bytes],
-                 tun_ifname: str = TUNIFNAME,
-                 local_addr: str = LOCAL_ADDR,
-                 local_port: int = LOCAL_PORT,
-                 peer_addr: str = PEER_ADDR,
-                 peer_port: int = PEER_PORT,
-                 peer_dynamic_accept: bool = False,
-                 peer_validtime: int = PEER_VALIDTIME,
-                 msg_validtime: int = MSG_VALIDTIME):
+    def __init__(
+        self,
+        key: Union[str, bytes],
+        peer_key: Union[str, bytes],
+        tun_ifname: str = TUNIFNAME,
+        local_addr: str = LOCAL_ADDR,
+        local_port: int = LOCAL_PORT,
+        peer_addr: str = PEER_ADDR,
+        peer_port: int = PEER_PORT,
+        peer_dynamic_accept: bool = False,
+        peer_validtime: int = PEER_VALIDTIME,
+        msg_validtime: int = MSG_VALIDTIME,
+    ):
         if isinstance(key, str):
             key = hashlib.md5(key.encode()).digest()
         self.key = key

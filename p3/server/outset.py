@@ -15,11 +15,13 @@ class Outset(SelfSerializable, Loggable):
     fetchers: list[Fetcher]
     connect_attempts: int
 
-    def __init__(self,
-                 outboxes: Optional[list[Outbox]] = None,
-                 fetchers: Optional[list[Fetcher]] = None,
-                 connect_attempts: int = CONNECT_ATTEMPTS,
-                 **kwargs):
+    def __init__(
+        self,
+        outboxes: Optional[list[Outbox]] = None,
+        fetchers: Optional[list[Fetcher]] = None,
+        connect_attempts: int = CONNECT_ATTEMPTS,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         if outboxes is None:
             outboxes = list()

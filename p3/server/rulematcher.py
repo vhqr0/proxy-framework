@@ -33,10 +33,12 @@ class RuleMatcher(SelfSerializable, Loggable):
     rules_file: str
     rules: Optional[dict[str, Rule]]
 
-    def __init__(self,
-                 rules_fallback: str = RULES_FALLBACK,
-                 rules_file: str = RULES_FILE,
-                 **kwargs):
+    def __init__(
+        self,
+        rules_fallback: str = RULES_FALLBACK,
+        rules_file: str = RULES_FILE,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.rules_fallback = Rule.from_str(rules_fallback)
         self.rules_file = rules_file

@@ -13,8 +13,8 @@ from p3.utils.override import override
 class V2rayNNetConnector(Connector):
     addr: tuple[str, int]
     net: str
-    ws_path: str
     ws_host: str
+    ws_path: str
     tls_host: str
     tls_protocols: str
 
@@ -22,8 +22,8 @@ class V2rayNNetConnector(Connector):
         self,
         addr: tuple[str, int],
         net: str = 'tcp',
-        ws_path: str = WS_OUTBOX_PATH,
         ws_host: str = WS_OUTBOX_HOST,
+        ws_path: str = WS_OUTBOX_PATH,
         tls_host: str = TLS_OUTBOX_HOST,
         tls_protocols: str = '',
         **kwargs,
@@ -31,8 +31,8 @@ class V2rayNNetConnector(Connector):
         super().__init__(**kwargs)
         self.addr = addr
         self.net = net
-        self.ws_path = ws_path
         self.ws_host = ws_host
+        self.ws_path = ws_path
         self.tls_host = tls_host
         self.tls_protocols = tls_protocols
 
@@ -55,8 +55,8 @@ class V2rayNNetConnector(Connector):
         )
         if self.net in ('ws', 'wss'):
             connector = WSConnector(
-                path=self.ws_path,
                 host=self.ws_host,
+                path=self.ws_path,
                 next_layer=connector,
             )
         return await connector.connect(rest=rest)
@@ -64,24 +64,24 @@ class V2rayNNetConnector(Connector):
 
 class V2rayNNetCtxOutbox(Outbox, ABC):
     net: str
-    ws_path: str
     ws_host: str
+    ws_path: str
     tls_host: str
     tls_protocols: str
 
     def __init__(
         self,
         net: str = 'tcp',
-        ws_path: str = WS_OUTBOX_PATH,
         ws_host: str = WS_OUTBOX_HOST,
+        ws_path: str = WS_OUTBOX_PATH,
         tls_host: str = TLS_OUTBOX_HOST,
         tls_protocols: str = '',
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.net = net
-        self.ws_path = ws_path
         self.ws_host = ws_host
+        self.ws_path = ws_path
         self.tls_host = tls_host
         self.tls_protocols = tls_protocols
 
@@ -92,8 +92,8 @@ class V2rayNNetCtxOutbox(Outbox, ABC):
         return V2rayNNetConnector(
             addr=self.url.addr,
             net=self.net,
-            ws_path=self.ws_path,
             ws_host=self.ws_host,
+            ws_path=self.ws_path,
             tls_host=self.tls_host,
             tls_protocols=self.tls_protocols,
         )
@@ -102,8 +102,8 @@ class V2rayNNetCtxOutbox(Outbox, ABC):
     def to_dict(self) -> dict[str, Any]:
         obj = super().to_dict()
         obj['net'] = self.net
-        obj['ws_path'] = self.ws_path
         obj['ws_host'] = self.ws_host
+        obj['ws_path'] = self.ws_path
         obj['tls_host'] = self.tls_host
         obj['tls_protocols'] = self.tls_protocols
         return obj
@@ -113,8 +113,8 @@ class V2rayNNetCtxOutbox(Outbox, ABC):
     def kwargs_from_dict(cls, obj: dict[str, Any]) -> dict[str, Any]:
         kwargs = super().kwargs_from_dict(obj)
         kwargs['net'] = obj.get('net') or 'tcp'
-        kwargs['ws_path'] = obj.get('ws_path') or WS_OUTBOX_PATH
         kwargs['ws_host'] = obj.get('ws_host') or WS_OUTBOX_HOST
+        kwargs['ws_path'] = obj.get('ws_path') or WS_OUTBOX_PATH
         kwargs['tls_host'] = obj.get('tls_host') or TLS_OUTBOX_HOST
         kwargs['tls_protocols'] = obj.get('tls_protocols') or ''
         return kwargs

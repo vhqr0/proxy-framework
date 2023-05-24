@@ -19,12 +19,14 @@ class Outdispatcher(SelfSerializable, Loggable):
     direct_outbox: Outbox
     forward_outset: Outset
 
-    def __init__(self,
-                 rule_matcher: RuleMatcher,
-                 block_outbox: Optional[Outbox] = None,
-                 direct_outbox: Optional[Outbox] = None,
-                 forward_outset: Optional[Outset] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        rule_matcher: RuleMatcher,
+        block_outbox: Optional[Outbox] = None,
+        direct_outbox: Optional[Outbox] = None,
+        forward_outset: Optional[Outset] = None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.rule_matcher = rule_matcher
         self.block_outbox = block_outbox or BlockOutbox(name='BLOCK')

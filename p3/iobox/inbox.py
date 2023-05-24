@@ -16,16 +16,19 @@ class Inbox(DispatchedSerializable['Inbox'], Loggable, ABC):
     ensure_rest: bool = True
     fallback_url = URL.from_str(INBOX_URL)
 
-    def __init__(self,
-                 url: Optional[str] = None,
-                 tcp_extra_kwargs: Optional[dict[str, Any]] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        url: Optional[str] = None,
+        tcp_extra_kwargs: Optional[dict[str, Any]] = None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         if url is None:
             url = self.scheme + '://'
+        if tcp_extra_kwargs is None:
+            tcp_extra_kwargs = dict()
         self.url = URL.from_str(url, fallback=self.fallback_url)
-        self.tcp_extra_kwargs = tcp_extra_kwargs \
-            if tcp_extra_kwargs is not None else dict()
+        self.tcp_extra_kwargs = tcp_extra_kwargs
 
     @override(DispatchedSerializable)
     def to_dict(self) -> dict[str, Any]:

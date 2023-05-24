@@ -61,7 +61,8 @@ class Pingable(Weightable, Tabularable, Loggable):
         # Virtual inherit from DispatchedSerializable.
         kwargs = super().kwargs_from_dict(obj)  # type: ignore
         delay = obj.get('delay')
-        kwargs['delay'] = Delay(delay) if delay is not None else Delay()
+        if delay is not None:
+            kwargs['delay'] = Delay(delay)
         return kwargs
 
     def ping_connect(self):

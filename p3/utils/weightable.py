@@ -67,7 +67,8 @@ class Weightable(Loggable):
         # Virtual inherit from DispatchedSerializable.
         kwargs = super().kwargs_from_dict(obj)  # type: ignore
         weight = obj.get('weight')
-        kwargs['weight'] = Weight(weight) if weight is not None else Weight()
+        if weight is not None:
+            kwargs['weight'] = Weight(weight)
         return kwargs
 
     @classmethod

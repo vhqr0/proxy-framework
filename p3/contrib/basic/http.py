@@ -61,11 +61,13 @@ class HTTPRequest(HTTPHeaders):
     path: str
     version: str
 
-    def __init__(self,
-                 method: str = 'CONNECT',
-                 path: str = '/',
-                 version: str = 'HTTP/1.1',
-                 **kwargs):
+    def __init__(
+        self,
+        method: str = 'CONNECT',
+        path: str = '/',
+        version: str = 'HTTP/1.1',
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.method = method
         self.path = path

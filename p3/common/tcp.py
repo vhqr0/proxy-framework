@@ -11,8 +11,12 @@ class TCPStream(Stream):
     reader: asyncio.StreamReader
     writer: asyncio.StreamWriter
 
-    def __init__(self, reader: asyncio.StreamReader,
-                 writer: asyncio.StreamWriter, **kwargs):
+    def __init__(
+        self,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.reader = reader
         self.writer = writer
@@ -42,14 +46,17 @@ class TCPConnector(Connector):
     addr: tuple[str, int]
     tcp_extra_kwargs: dict[str, Any]
 
-    def __init__(self,
-                 addr: tuple[str, int],
-                 tcp_extra_kwargs: Optional[dict[str, Any]] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        addr: tuple[str, int],
+        tcp_extra_kwargs: Optional[dict[str, Any]] = None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
+        if tcp_extra_kwargs is None:
+            tcp_extra_kwargs = dict()
         self.addr = addr
-        self.tcp_extra_kwargs = tcp_extra_kwargs \
-            if tcp_extra_kwargs is not None else dict()
+        self.tcp_extra_kwargs = tcp_extra_kwargs
 
     @override(Connector)
     async def connect(self, rest: bytes = b'') -> Stream:
@@ -67,8 +74,12 @@ class TCPConnector(Connector):
 
 class TCPAcceptor(WrappedAcceptor):
 
-    def __init__(self, reader: asyncio.StreamReader,
-                 writer: asyncio.StreamWriter, **kwargs):
+    def __init__(
+        self,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+        **kwargs,
+    ):
         stream = TCPStream(reader=reader, writer=writer)
         super().__init__(stream=stream, **kwargs)
 

@@ -35,7 +35,7 @@ Links:
   add:port  => url
   id        => userid
   net:tls   => net
-  path:host => ws_path:ws_host
+  host:path => ws_host:ws_path
   sni:alpn  => tls_host:tls_protocols
 - Ignores: aid, scy, fp
 - Ensures: v=2, type=none
@@ -98,8 +98,8 @@ class V2rayNFetcher(Fetcher):
         host: str = data['add']
         port: int = data['port']
         userid: str = data['id']
-        ws_path: str = data.get('path') or '/'
         ws_host: str = data.get('host') or host
+        ws_path: str = data.get('path') or '/'
         tls_host: str = data.get('sni') or host
         tls_protocols: str = data.get('alpn') or ''
 
@@ -117,8 +117,8 @@ class V2rayNFetcher(Fetcher):
             'name': name,
             'fetcher': self.name,
             'net': net,
-            'ws_path': ws_path,
             'ws_host': ws_host,
+            'ws_path': ws_path,
             'tls_host': tls_host,
             'tls_protocols': tls_protocols,
             'userid': userid,

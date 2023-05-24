@@ -15,11 +15,13 @@ class TLSCtxInbox(Inbox):
     tls_key_pwd: str
     tls_ctx: ssl.SSLContext
 
-    def __init__(self,
-                 tls_cert_file: str = TLS_INBOX_CERT_FILE,
-                 tls_key_file: str = TLS_INBOX_KEY_FILE,
-                 tls_key_pwd: str = TLS_INBOX_KEY_PWD,
-                 **kwargs):
+    def __init__(
+        self,
+        tls_cert_file: str = TLS_INBOX_CERT_FILE,
+        tls_key_file: str = TLS_INBOX_KEY_FILE,
+        tls_key_pwd: str = TLS_INBOX_KEY_PWD,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.tls_cert_file = tls_cert_file
         self.tls_key_file = tls_key_file
@@ -56,10 +58,12 @@ class TLSCtxOutbox(Outbox):
     tls_host: str
     tls_ctx: ssl.SSLContext
 
-    def __init__(self,
-                 tls_cert_file: str = TLS_OUTBOX_CERT_FILE,
-                 tls_host: str = TLS_OUTBOX_HOST,
-                 **kwargs):
+    def __init__(
+        self,
+        tls_cert_file: str = TLS_OUTBOX_CERT_FILE,
+        tls_host: str = TLS_OUTBOX_HOST,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.tls_cert_file = tls_cert_file
         self.tls_host = tls_host
