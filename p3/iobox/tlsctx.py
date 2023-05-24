@@ -3,7 +3,7 @@ from typing import Any
 
 from p3.defaults import (TLS_INBOX_CERT_FILE, TLS_INBOX_KEY_FILE,
                          TLS_INBOX_KEY_PWD, TLS_OUTBOX_CERT_FILE,
-                         TLS_OUTBOX_HOST)
+                         TLS_OUTBOX_HOST, TLS_OUTBOX_PROTOCOLS)
 from p3.iobox.inbox import Inbox
 from p3.iobox.outbox import Outbox
 from p3.utils.override import override
@@ -56,19 +56,25 @@ class TLSCtxInbox(Inbox):
 class TLSCtxOutbox(Outbox):
     tls_cert_file: str
     tls_host: str
+    tls_protocols: str
     tls_ctx: ssl.SSLContext
 
     def __init__(
         self,
         tls_cert_file: str = TLS_OUTBOX_CERT_FILE,
         tls_host: str = TLS_OUTBOX_HOST,
+        tls_protocols: str = TLS_OUTBOX_PROTOCOLS,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.tls_cert_file = tls_cert_file
         self.tls_host = tls_host
+        self.tls_protocols = tls_protocols
         self.tls_ctx = ssl.create_default_context(
             cafile=self.tls_cert_file or None)
+        if len(self.tls_protocols) != 0:
+            protocols = self.tls_protocols.split(',')
+            self.tls_ctx.set_alpn_protocols(protocols)
         self.tcp_extra_kwargs['ssl'] = self.tls_ctx
         self.tcp_extra_kwargs['server_hostname'] = self.tls_host
 
@@ -77,6 +83,7 @@ class TLSCtxOutbox(Outbox):
         obj = super().to_dict()
         obj['tls_cert_file'] = self.tls_cert_file
         obj['tls_host'] = self.tls_host
+        obj['tls_protocols'] = self.tls_protocols
         return obj
 
     @classmethod
@@ -86,4 +93,6 @@ class TLSCtxOutbox(Outbox):
         kwargs['tls_cert_file'] = obj.get('tls_cert_file') or \
             TLS_OUTBOX_CERT_FILE
         kwargs['tls_host'] = obj.get('tls_host') or TLS_OUTBOX_HOST
+        kwargs['tls_protocols'] = obj.get('tls_protocols') or \
+            TLS_OUTBOX_PROTOCOLS
         return kwargs

@@ -11,7 +11,7 @@ from p3.defaults import (BLOCK_OUTBOX_URL, CONFIG_FILE, CONNECT_ATTEMPTS,
                          LOG_FORMAT, RULES_FALLBACK, RULES_FILE,
                          TLS_INBOX_CERT_FILE, TLS_INBOX_KEY_FILE,
                          TLS_INBOX_KEY_PWD, TLS_OUTBOX_CERT_FILE,
-                         TLS_OUTBOX_HOST)
+                         TLS_OUTBOX_HOST, TLS_OUTBOX_PROTOCOLS)
 from p3.server.server import Server
 from p3.utils.cmdwraps import cmdwraps
 from p3.utils.loggable import Loggable
@@ -60,13 +60,16 @@ class Manager(Cmd, Loggable):
         parser.add_argument('-K',
                             '--tls-inbox-key-file',
                             default=TLS_INBOX_KEY_FILE)
-        parser.add_argument('-P',
+        parser.add_argument('-p',
                             '--tls-inbox-key-pwd',
                             default=TLS_INBOX_KEY_PWD)
         parser.add_argument('-R',
                             '--tls-outbox-cert-file',
                             default=TLS_OUTBOX_CERT_FILE)
         parser.add_argument('-H', '--tls-outbox-host', default=TLS_OUTBOX_HOST)
+        parser.add_argument('-P',
+                            '--tls-outbox-protocols',
+                            default=TLS_OUTBOX_PROTOCOLS)
         parser.add_argument('command', nargs=argparse.REMAINDER)
         args = parser.parse_args()
 
@@ -102,6 +105,7 @@ class Manager(Cmd, Loggable):
         tls_inbox_key_pwd = args.tls_inbox_key_pwd
         tls_outbox_cert_file = args.tls_outbox_cert_file
         tls_outbox_host = args.tls_outbox_host
+        tls_outbox_protocols = args.tls_outbox_protocols
         rules_fallback = args.rules_fallback
         rules_file = args.rules_file
         connect_attempts = args.connect_attempts
@@ -111,6 +115,7 @@ class Manager(Cmd, Loggable):
             'name': url,
             'tls_cert_file': tls_outbox_cert_file,
             'tls_host': tls_outbox_host,
+            'tls_protocols': tls_outbox_protocols,
         } for url in forward_outbox_urls]
 
         obj = {
@@ -130,12 +135,14 @@ class Manager(Cmd, Loggable):
                     'name': 'BLOCK',
                     'tls_cert_file': tls_outbox_cert_file,
                     'tls_host': tls_outbox_host,
+                    'tls_protocols': tls_outbox_protocols,
                 },
                 'direct_outbox': {
                     'url': direct_outbox_url,
                     'name': 'DIRECT',
                     'tls_cert_file': tls_outbox_cert_file,
                     'tls_host': tls_outbox_host,
+                    'tls_protocols': tls_outbox_protocols,
                 },
                 'forward_outset': {
                     'outboxes': forward_outboxes,

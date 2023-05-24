@@ -49,11 +49,18 @@ class HTTPHeaders:
         sp = ['{}: {}'.format(k, v) for k, v in self.headers.items()]
         return self.firstline + '\r\n' + '\r\n'.join(sp) + '\r\n\r\n'
 
-    def pack(self) -> bytes:
-        return self.pack_str().encode()
+    def pack(self, rest: bytes = b'') -> bytes:
+        return self.pack_str().encode() + rest
 
     def pack_firstline(self):
         raise NotImplementedError
+
+    def add_header(self, k: str, v: str):
+        self.headers[k] = v
+
+    def add_headers(self, headers: dict[str, str]):
+        for k, v in headers.items():
+            self.add_header(k, v)
 
 
 class HTTPRequest(HTTPHeaders):
@@ -169,10 +176,17 @@ class HTTPResponse(HTTPHeaders):
 
 
 class HTTPConnector(ProxyConnector):
-    # CONNECT {} HTTP/1.1\r\nHost: {}\r\n\r\n
-    REQ_FORMAT = HTTPRequest(path='{}', headers={'Host': '{}'}).pack_str()
+    extra_headers: Optional[dict[str, str]]
 
     ensure_next_layer = True
+
+    def __init__(
+        self,
+        extra_headers: Optional[dict[str, str]] = None,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.extra_headers = extra_headers
 
     @override(ProxyConnector)
     async def connect(self, rest: bytes = b'') -> Stream:
@@ -181,10 +195,10 @@ class HTTPConnector(ProxyConnector):
         if addr.find(':') >= 0:
             addr = '[{}]'.format(addr)
         host = '{}:{}'.format(addr, port)
-        req = self.REQ_FORMAT.format(host, host).encode()
-        if len(rest) != 0:
-            req += rest
-        stream = await self.next_layer.connect(rest=req)
+        req = HTTPRequest(path=host, headers={'Host': host})
+        if self.extra_headers is not None:
+            req.add_headers(self.extra_headers)
+        stream = await self.next_layer.connect(rest=req.pack(rest))
         async with stream.cm(exc_only=True):
             resp = await HTTPResponse.read_from_stream(stream)
             status = resp.statuscode

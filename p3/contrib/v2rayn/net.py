@@ -4,7 +4,8 @@ from typing import Any
 
 from p3.common.tcp import TCPConnector
 from p3.contrib.basic.ws import WSConnector
-from p3.defaults import TLS_OUTBOX_HOST, WS_OUTBOX_HOST, WS_OUTBOX_PATH
+from p3.defaults import (TLS_OUTBOX_HOST, TLS_OUTBOX_PROTOCOLS, WS_OUTBOX_HOST,
+                         WS_OUTBOX_PATH)
 from p3.iobox import Outbox
 from p3.stream import Connector, Stream
 from p3.utils.override import override
@@ -25,7 +26,7 @@ class V2rayNNetConnector(Connector):
         ws_host: str = WS_OUTBOX_HOST,
         ws_path: str = WS_OUTBOX_PATH,
         tls_host: str = TLS_OUTBOX_HOST,
-        tls_protocols: str = '',
+        tls_protocols: str = TLS_OUTBOX_PROTOCOLS,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -75,7 +76,7 @@ class V2rayNNetCtxOutbox(Outbox, ABC):
         ws_host: str = WS_OUTBOX_HOST,
         ws_path: str = WS_OUTBOX_PATH,
         tls_host: str = TLS_OUTBOX_HOST,
-        tls_protocols: str = '',
+        tls_protocols: str = TLS_OUTBOX_PROTOCOLS,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -116,5 +117,6 @@ class V2rayNNetCtxOutbox(Outbox, ABC):
         kwargs['ws_host'] = obj.get('ws_host') or WS_OUTBOX_HOST
         kwargs['ws_path'] = obj.get('ws_path') or WS_OUTBOX_PATH
         kwargs['tls_host'] = obj.get('tls_host') or TLS_OUTBOX_HOST
-        kwargs['tls_protocols'] = obj.get('tls_protocols') or ''
+        kwargs['tls_protocols'] = obj.get('tls_protocols') \
+            or TLS_OUTBOX_PROTOCOLS
         return kwargs

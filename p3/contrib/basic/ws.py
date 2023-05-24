@@ -213,19 +213,7 @@ class WSStream(Stream):
 class WSConnector(Connector):
     host: str
     path: str
-
-    REQ_FORMAT_HEADERS = {
-        'Host': '{}',
-        'Upgrade': 'websocket',
-        'Connection': 'Upgrade',
-        'Sec-WebSocket-Key': '{}',
-        'Sec-WebSocket-Version': '13',
-    }
-    REQ_FORMAT = HTTPRequest(
-        method='GET',
-        path='{}',
-        headers=REQ_FORMAT_HEADERS,
-    ).pack_str()
+    extra_headers: Optional[dict[str, str]]
 
     ensure_next_layer = True
 
@@ -233,18 +221,29 @@ class WSConnector(Connector):
         self,
         host: str = WS_OUTBOX_HOST,
         path: str = WS_OUTBOX_PATH,
+        extra_headers: Optional[dict[str, str]] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.host = host
         self.path = path
+        self.extra_headers = extra_headers
 
     @override(Connector)
     async def connect(self, rest: bytes = b'') -> Stream:
         assert self.next_layer is not None
         key = base64.b64encode(random.randbytes(16)).decode()
-        req = self.REQ_FORMAT.format(self.path, self.host, key)
-        next_stream = await self.next_layer.connect(rest=req.encode())
+        headers = {
+            'Host': self.host,
+            'Upgrade': 'websocket',
+            'Connection': 'Upgrade',
+            'Sec-WebSocket-Key': key,
+            'Sec-WebSocket-Version': '13',
+        }
+        req = HTTPRequest(method='GET', path=self.path, headers=headers)
+        if self.extra_headers is not None:
+            req.add_headers(self.extra_headers)
+        next_stream = await self.next_layer.connect(rest=req.pack())
         async with next_stream.cm(exc_only=True):
             resp = await HTTPResponse.read_from_stream(next_stream)
             status = resp.statuscode
@@ -257,18 +256,8 @@ class WSConnector(Connector):
 
 
 class WSAcceptor(Acceptor):
-    host: str
-    path: str
-    protocols: list[str]
+    req: HTTPRequest
 
-    RESP_FORMAT_HEADERS = {
-        'Upgrade': 'websocket',
-        'Connection': 'Upgrade',
-        'Sec-WebSocket-Accept': '{}',
-        'Sec-WebSocket-Version': '13',
-    }
-    RESP_FORMAT = HTTPResponse(
-        status=HTTPStatus.SWITCHING_PROTOCOLS).pack_str()
     WS_MAGIC = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 
     ensure_next_layer = True
@@ -292,14 +281,16 @@ class WSAcceptor(Acceptor):
                 raise ProtocolError('ws', 'version', version)
             key_hash = sha1((key + self.WS_MAGIC).encode()).digest()
             accept = base64.b64encode(key_hash).decode()
-            resp = self.RESP_FORMAT.format(accept).encode()
-            await next_stream.writedrain(resp)
-            protocols = list()
-            protocol = req.headers.get('Sec-WebSocket-Protocol')
-            if protocol is not None:
-                for s in protocol.split(','):
-                    protocols.append(s.strip())
-            self.host = req.host
-            self.path = req.path
-            self.protocols = protocols
+            headers = {
+                'Upgrade': 'websocket',
+                'Connection': 'Upgrade',
+                'Sec-WebSocket-Accept': accept,
+                'Sec-WebSocket-Version': '13',
+            }
+            resp = HTTPResponse(
+                status=HTTPStatus.SWITCHING_PROTOCOLS,
+                headers=headers,
+            )
+            await next_stream.writedrain(resp.pack())
+            self.req = req
             return WSStream(next_layer=next_stream)

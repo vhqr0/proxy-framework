@@ -10,6 +10,7 @@ TLS_INBOX_KEY_FILE = 'key.pem'
 TLS_INBOX_KEY_PWD = ''
 TLS_OUTBOX_CERT_FILE = 'cert.pem'
 TLS_OUTBOX_HOST = 'localhost'
+TLS_OUTBOX_PROTOCOLS = ''
 
 WS_OUTBOX_HOST = 'localhost'
 WS_OUTBOX_PATH = '/'
