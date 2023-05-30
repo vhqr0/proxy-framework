@@ -54,8 +54,6 @@ class ProxyPing(Ping):
             stream = await outbox.connect(req)
             async with stream.cm():
                 resp = await HTTPResponse.read_from_stream(stream)
-            if resp.statuscode is not HTTPStatus.OK:
-                raise RuntimeError(resp.reason)
 
         async def main():
             await asyncio.wait_for(test(), timeout=self.timeout)

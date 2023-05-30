@@ -107,7 +107,7 @@ class Outset(SelfSerializable, Loggable):
                 try:
                     outboxes = fetcher.fetch()
                     for outbox in self.outboxes:
-                        if outbox.name != fetcher.name:
+                        if outbox.fetcher != fetcher.name:
                             outboxes.append(outbox)
                     self.outboxes = outboxes
                 except Exception as e:
