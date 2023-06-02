@@ -117,6 +117,23 @@ class Socks5Addr:
     IPv4Struct = Struct('!B4sH')
     IPv6Struct = Struct('!B16sH')
 
+    def __bytes__(self) -> bytes:
+        addr, port = self.addr
+        if self.atyp is Socks5Atyp.DOMAINNAME:
+            addr_bytes = addr.encode()
+            alen = len(addr_bytes)
+            return BBStruct.pack(self.atyp, alen) + \
+                addr_bytes + \
+                HStruct.pack(port)
+        elif self.atyp is Socks5Atyp.IPV4:
+            addr_bytes = socket.inet_pton(socket.AF_INET, addr)
+            return self.IPv4Struct.pack(self.atyp, addr_bytes, port)
+        elif self.atyp is Socks5Atyp.IPV6:
+            addr_bytes = socket.inet_pton(socket.AF_INET6, addr)
+            return self.IPv6Struct.pack(self.atyp, addr_bytes, port)
+        else:
+            raise ProtocolError('socks5', 'addr', 'atyp', self.atyp.name)
+
     @classmethod
     async def read_from_stream(cls, stream: Stream) -> Self:
         _atyp = await stream.readB()
@@ -136,23 +153,6 @@ class Socks5Addr:
             raise ProtocolError('socks5', 'addr', 'atyp', atyp.name)
         return cls(atyp, (addr, port))
 
-    def __bytes__(self) -> bytes:
-        addr, port = self.addr
-        if self.atyp is Socks5Atyp.DOMAINNAME:
-            addr_bytes = addr.encode()
-            alen = len(addr_bytes)
-            return BBStruct.pack(self.atyp, alen) + \
-                addr_bytes + \
-                HStruct.pack(port)
-        elif self.atyp is Socks5Atyp.IPV4:
-            addr_bytes = socket.inet_pton(socket.AF_INET, addr)
-            return self.IPv4Struct.pack(self.atyp, addr_bytes, port)
-        elif self.atyp is Socks5Atyp.IPV6:
-            addr_bytes = socket.inet_pton(socket.AF_INET6, addr)
-            return self.IPv6Struct.pack(self.atyp, addr_bytes, port)
-        else:
-            raise ProtocolError('socks5', 'addr', 'atyp', self.atyp.name)
-
 
 @dataclass
 class Socks5AuthRequest:
@@ -165,6 +165,11 @@ class Socks5AuthRequest:
     """
     methods: Union[bytes, Sequence[Socks5AuthMethod]]
 
+    def __bytes__(self) -> bytes:
+        nmethods = len(self.methods)
+        methods = bytes(self.methods)
+        return BBStruct.pack(SocksVer.V5, nmethods) + methods
+
     @classmethod
     async def read_from_stream(cls, stream: Stream) -> Self:
         ver, nmethods = await stream.read_struct(BBStruct)
@@ -173,11 +178,6 @@ class Socks5AuthRequest:
             raise ProtocolError('socks5', 'auth', 'methods')
         methods = await stream.readexactly(nmethods)
         return cls(methods)
-
-    def __bytes__(self) -> bytes:
-        nmethods = len(self.methods)
-        methods = bytes(self.methods)
-        return BBStruct.pack(SocksVer.V5, nmethods) + methods
 
 
 @dataclass
@@ -191,15 +191,15 @@ class Socks5AuthReply:
     """
     method: Socks5AuthMethod
 
+    def __bytes__(self) -> bytes:
+        return BBStruct.pack(SocksVer.V5, self.method)
+
     @classmethod
     async def read_from_stream(cls, stream: Stream) -> Self:
         ver, _method = await stream.read_struct(BBStruct)
         SocksVer.V5.ensure(ver)
         method = Socks5AuthMethod(_method)
         return cls(method)
-
-    def __bytes__(self) -> bytes:
-        return BBStruct.pack(SocksVer.V5, self.method)
 
 
 @dataclass
@@ -214,6 +214,9 @@ class Socks5Request:
     cmd: Socks5Cmd
     dst: Socks5Addr
 
+    def __bytes__(self) -> bytes:
+        return BBBStruct.pack(SocksVer.V5, self.cmd, 0) + bytes(self.dst)
+
     @classmethod
     async def read_from_stream(cls, stream: Stream) -> Self:
         ver, _cmd, rsv = await stream.read_struct(BBBStruct)
@@ -222,9 +225,6 @@ class Socks5Request:
         cmd = Socks5Cmd(_cmd)
         dst = await Socks5Addr.read_from_stream(stream)
         return cls(cmd, dst)
-
-    def __bytes__(self) -> bytes:
-        return BBBStruct.pack(SocksVer.V5, self.cmd, 0) + bytes(self.dst)
 
 
 @dataclass
@@ -239,6 +239,9 @@ class Socks5Reply:
     rep: Socks5Rep
     bnd: Socks5Addr
 
+    def __bytes__(self) -> bytes:
+        return BBBStruct.pack(SocksVer.V5, self.rep, 0) + bytes(self.bnd)
+
     @classmethod
     async def read_from_stream(cls, stream: Stream) -> Self:
         ver, _rep, rsv = await stream.read_struct(BBBStruct)
@@ -247,9 +250,6 @@ class Socks5Reply:
         rep = Socks5Rep(_rep)
         bnd = await Socks5Addr.read_from_stream(stream)
         return cls(rep, bnd)
-
-    def __bytes__(self) -> bytes:
-        return BBBStruct.pack(SocksVer.V5, self.rep, 0) + bytes(self.bnd)
 
 
 class Socks5Connector(ProxyConnector):

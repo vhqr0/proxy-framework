@@ -31,6 +31,16 @@ class HTTPHeaders:
         self.firstline = firstline
         self.headers = headers
 
+    def __str__(self) -> str:
+        if self.firstline is None:
+            self.pack_firstline()
+        assert self.firstline is not None
+        sp = ['{}: {}'.format(k, v) for k, v in self.headers.items()]
+        return self.firstline + '\r\n' + '\r\n'.join(sp) + '\r\n\r\n'
+
+    def __bytes__(self) -> bytes:
+        return str(self).encode()
+
     @classmethod
     async def read_from_stream(cls, stream: Stream) -> Self:
         buf = await stream.readuntil(b'\r\n\r\n', strip=True)
@@ -41,16 +51,6 @@ class HTTPHeaders:
             k, v = header.split(':', 1)
             headers[k.strip()] = v.strip()
         return cls(firstline=firstline, headers=headers)
-
-    def __str__(self) -> str:
-        if self.firstline is None:
-            self.pack_firstline()
-        assert self.firstline is not None
-        sp = ['{}: {}'.format(k, v) for k, v in self.headers.items()]
-        return self.firstline + '\r\n' + '\r\n'.join(sp) + '\r\n\r\n'
-
-    def __bytes__(self) -> bytes:
-        return str(self).encode()
 
     def pack_firstline(self):
         raise NotImplementedError

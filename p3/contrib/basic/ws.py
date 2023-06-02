@@ -75,6 +75,29 @@ class WSFrame:
     opcode: WSOpcode
     payload: bytes
 
+    def __bytes__(self) -> bytes:
+        opcode = int(self.opcode)
+        if self.fin:
+            opcode += 0x80
+        plen = len(self.payload)
+        mask = 0x80 if self.mask else 0
+        if plen <= 125:
+            header = BBStruct.pack(opcode, mask + plen)
+        elif plen <= 65535:
+            header = BBHStruct.pack(opcode, mask + 126, plen)
+        else:
+            header = BBQStruct.pack(opcode, mask + 127, plen)
+        if self.mask:
+            assert self.key is not None
+            header += self.key
+        return header + self.payload
+
+    def _mask_payload(self):
+        if self.key is None:
+            self.key = random.randbytes(4)
+        self.payload = bytes(c ^ self.key[i % 4]
+                             for i, c in enumerate(self.payload))
+
     def do_mask(self):
         if self.mask:
             return
@@ -86,12 +109,6 @@ class WSFrame:
             return
         self.mask = False
         self._mask_payload()
-
-    def _mask_payload(self):
-        if self.key is None:
-            self.key = random.randbytes(4)
-        self.payload = bytes(c ^ self.key[i % 4]
-                             for i, c in enumerate(self.payload))
 
     @classmethod
     async def read_from_stream(cls, stream: Stream) -> Self:
@@ -115,23 +132,6 @@ class WSFrame:
             opcode=opcode,
             payload=payload,
         )
-
-    def __bytes__(self) -> bytes:
-        opcode = int(self.opcode)
-        if self.fin:
-            opcode += 0x80
-        plen = len(self.payload)
-        mask = 0x80 if self.mask else 0
-        if plen <= 125:
-            header = BBStruct.pack(opcode, mask + plen)
-        elif plen <= 65535:
-            header = BBHStruct.pack(opcode, mask + 126, plen)
-        else:
-            header = BBQStruct.pack(opcode, mask + 127, plen)
-        if self.mask:
-            assert self.key is not None
-            header += self.key
-        return header + self.payload
 
 
 class WSStream(Stream):

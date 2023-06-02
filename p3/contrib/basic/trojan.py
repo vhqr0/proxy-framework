@@ -31,15 +31,15 @@ class TrojanRequest:
     cmd: Socks5Cmd
     dst: Socks5Addr
 
+    def __bytes__(self) -> bytes:
+        return BStruct.pack(self.cmd) + bytes(self.dst)
+
     @classmethod
     async def read_from_stream(cls, stream: Stream) -> Self:
         _cmd = await stream.readB()
         cmd = Socks5Cmd(_cmd)
         dst = await Socks5Addr.read_from_stream(stream)
         return cls(cmd, dst)
-
-    def __bytes__(self) -> bytes:
-        return BStruct.pack(self.cmd) + bytes(self.dst)
 
 
 @dataclass
@@ -54,6 +54,9 @@ class TrojanHeader:
     auth: bytes
     req: TrojanRequest
 
+    def __bytes__(self) -> bytes:
+        return self.auth + b'\r\n' + bytes(self.req) + b'\r\n'
+
     @classmethod
     async def read_from_stream(cls, stream: Stream) -> Self:
         auth = await stream.readuntil(b'\r\n', strip=True)
@@ -64,9 +67,6 @@ class TrojanHeader:
         if len(empty) != 0:
             raise ProtocolError('trojan', 'crlf')
         return cls(auth, req)
-
-    def __bytes__(self) -> bytes:
-        return self.auth + b'\r\n' + bytes(self.req) + b'\r\n'
 
 
 class TrojanConnector(ProxyConnector):
