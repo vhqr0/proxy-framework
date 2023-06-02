@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional
 
 from p3.defaults import INBOX_URL
-from p3.stream import Acceptor, ProxyRequest, Stream, ProxyAcceptor
+from p3.stream import Acceptor, ProxyAcceptor, ProxyRequest, Stream
 from p3.utils.loggable import Loggable
 from p3.utils.override import override
 from p3.utils.serializable import DispatchedSerializable

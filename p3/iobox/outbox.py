@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional
 
 from p3.defaults import OUTBOX_URL
-from p3.stream import Connector, ProxyRequest, Stream, ProxyConnector
+from p3.stream import Connector, ProxyConnector, ProxyRequest, Stream
 from p3.utils.loggable import Loggable
 from p3.utils.nameable import Nameable
 from p3.utils.override import override

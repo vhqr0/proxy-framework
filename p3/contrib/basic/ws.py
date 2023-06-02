@@ -116,7 +116,7 @@ class WSFrame:
             payload=payload,
         )
 
-    def pack(self) -> bytes:
+    def __bytes__(self) -> bytes:
         opcode = int(self.opcode)
         if self.fin:
             opcode += 0x80
@@ -161,7 +161,7 @@ class WSStream(Stream):
                 frame.opcode = WSOpcode.Pong
                 if self.do_mask_payload:
                     frame.do_mask()
-                self.next_layer.write(frame.pack())
+                self.next_layer.write(bytes(frame))
                 continue
             if frame.opcode in (WSOpcode.Text, WSOpcode.Binary,
                                 WSOpcode.ConnectionClose):
@@ -196,7 +196,7 @@ class WSStream(Stream):
         )
         if self.do_mask_payload:
             frame.do_mask()
-        self.next_layer.write(frame.pack())
+        self.next_layer.write(bytes(frame))
 
     @override(Stream)
     async def read_primitive(self) -> bytes:
@@ -243,7 +243,7 @@ class WSConnector(Connector):
         req = HTTPRequest(method='GET', path=self.path, headers=headers)
         if self.extra_headers is not None:
             req.add_headers(self.extra_headers)
-        next_stream = await self.next_layer.connect(rest=req.pack())
+        next_stream = await self.next_layer.connect(rest=bytes(req))
         async with next_stream.cm(exc_only=True):
             resp = await HTTPResponse.read_from_stream(next_stream)
             status = resp.statuscode
@@ -291,6 +291,6 @@ class WSAcceptor(Acceptor):
                 status=HTTPStatus.SWITCHING_PROTOCOLS,
                 headers=headers,
             )
-            await next_stream.writedrain(resp.pack())
+            await next_stream.writedrain(bytes(resp))
             self.req = req
             return WSStream(next_layer=next_stream)

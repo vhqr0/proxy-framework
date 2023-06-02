@@ -38,8 +38,8 @@ class TrojanRequest:
         dst = await Socks5Addr.read_from_stream(stream)
         return cls(cmd, dst)
 
-    def pack(self) -> bytes:
-        return BStruct.pack(self.cmd) + self.dst.pack()
+    def __bytes__(self) -> bytes:
+        return BStruct.pack(self.cmd) + bytes(self.dst)
 
 
 @dataclass
@@ -65,8 +65,8 @@ class TrojanHeader:
             raise ProtocolError('trojan', 'crlf')
         return cls(auth, req)
 
-    def pack(self) -> bytes:
-        return self.auth + b'\r\n' + self.req.pack() + b'\r\n'
+    def __bytes__(self) -> bytes:
+        return self.auth + b'\r\n' + bytes(self.req) + b'\r\n'
 
 
 class TrojanConnector(ProxyConnector):
@@ -84,7 +84,7 @@ class TrojanConnector(ProxyConnector):
         assert self.next_layer is not None
         dst = Socks5Addr(Socks5Atyp.DOMAINNAME, self.addr)
         treq = TrojanRequest(Socks5Cmd.Connect, dst)
-        req = TrojanHeader(self.auth, treq).pack()
+        req = bytes(TrojanHeader(self.auth, treq))
         if len(rest) != 0:
             req += rest
         return await self.next_layer.connect(rest=req)

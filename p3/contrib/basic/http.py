@@ -42,15 +42,15 @@ class HTTPHeaders:
             headers[k.strip()] = v.strip()
         return cls(firstline=firstline, headers=headers)
 
-    def pack_str(self) -> str:
+    def __str__(self) -> str:
         if self.firstline is None:
             self.pack_firstline()
         assert self.firstline is not None
         sp = ['{}: {}'.format(k, v) for k, v in self.headers.items()]
         return self.firstline + '\r\n' + '\r\n'.join(sp) + '\r\n\r\n'
 
-    def pack(self, rest: bytes = b'') -> bytes:
-        return self.pack_str().encode() + rest
+    def __bytes__(self) -> bytes:
+        return str(self).encode()
 
     def pack_firstline(self):
         raise NotImplementedError
@@ -198,7 +198,10 @@ class HTTPConnector(ProxyConnector):
         req = HTTPRequest(path=host, headers={'Host': host})
         if self.extra_headers is not None:
             req.add_headers(self.extra_headers)
-        stream = await self.next_layer.connect(rest=req.pack(rest))
+        req_bytes = bytes(req)
+        if len(rest) != 0:
+            req_bytes += rest
+        stream = await self.next_layer.connect(rest=req)
         async with stream.cm(exc_only=True):
             resp = await HTTPResponse.read_from_stream(stream)
             status = resp.statuscode
@@ -208,7 +211,7 @@ class HTTPConnector(ProxyConnector):
 
 
 class HTTPAcceptor(ProxyAcceptor):
-    RESP = HTTPResponse(headers={'Connection': 'close'}).pack()
+    RESP = bytes(HTTPResponse(headers={'Connection': 'close'}))
 
     @override(ProxyAcceptor)
     async def accept(self) -> Stream:
@@ -229,7 +232,7 @@ class HTTPAcceptor(ProxyAcceptor):
             for k in list(req.headers):
                 if k.startswith('Proxy-'):
                     del req.headers[k]
-            stream.push(req.pack())
+            stream.push(bytes(req))
         self.addr = req.addr
 
 

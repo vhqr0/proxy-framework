@@ -136,7 +136,7 @@ class Socks5Addr:
             raise ProtocolError('socks5', 'addr', 'atyp', atyp.name)
         return cls(atyp, (addr, port))
 
-    def pack(self) -> bytes:
+    def __bytes__(self) -> bytes:
         addr, port = self.addr
         if self.atyp is Socks5Atyp.DOMAINNAME:
             addr_bytes = addr.encode()
@@ -174,7 +174,7 @@ class Socks5AuthRequest:
         methods = await stream.readexactly(nmethods)
         return cls(methods)
 
-    def pack(self) -> bytes:
+    def __bytes__(self) -> bytes:
         nmethods = len(self.methods)
         methods = bytes(self.methods)
         return BBStruct.pack(SocksVer.V5, nmethods) + methods
@@ -198,7 +198,7 @@ class Socks5AuthReply:
         method = Socks5AuthMethod(_method)
         return cls(method)
 
-    def pack(self) -> bytes:
+    def __bytes__(self) -> bytes:
         return BBStruct.pack(SocksVer.V5, self.method)
 
 
@@ -223,8 +223,8 @@ class Socks5Request:
         dst = await Socks5Addr.read_from_stream(stream)
         return cls(cmd, dst)
 
-    def pack(self) -> bytes:
-        return BBBStruct.pack(SocksVer.V5, self.cmd, 0) + self.dst.pack()
+    def __bytes__(self) -> bytes:
+        return BBBStruct.pack(SocksVer.V5, self.cmd, 0) + bytes(self.dst)
 
 
 @dataclass
@@ -248,13 +248,13 @@ class Socks5Reply:
         bnd = await Socks5Addr.read_from_stream(stream)
         return cls(rep, bnd)
 
-    def pack(self) -> bytes:
-        return BBBStruct.pack(SocksVer.V5, self.rep, 0) + self.bnd.pack()
+    def __bytes__(self) -> bytes:
+        return BBBStruct.pack(SocksVer.V5, self.rep, 0) + bytes(self.bnd)
 
 
 class Socks5Connector(ProxyConnector):
-    AUTH_REQ = Socks5AuthRequest(
-        (Socks5AuthMethod.NoAuthenticationRequired, )).pack()
+    AUTH_REQ = bytes(
+        Socks5AuthRequest((Socks5AuthMethod.NoAuthenticationRequired, )))
 
     ensure_next_layer = True
 
@@ -268,7 +268,7 @@ class Socks5Connector(ProxyConnector):
                 raise ProtocolError('socks5', 'auth', 'method',
                                     arep.method.name)
             dst = Socks5Addr(Socks5Atyp.DOMAINNAME, self.addr)
-            req = Socks5Request(Socks5Cmd.Connect, dst).pack()
+            req = bytes(Socks5Request(Socks5Cmd.Connect, dst))
             if len(rest) != 0:
                 req += rest
             await stream.writedrain(req)
@@ -279,12 +279,13 @@ class Socks5Connector(ProxyConnector):
 
 
 class Socks5Acceptor(ProxyAcceptor):
-    AUTH_REP = Socks5AuthReply(
-        Socks5AuthMethod.NoAuthenticationRequired).pack()
-    REP = Socks5Reply(
-        Socks5Rep.Succeeded,
-        Socks5Addr(Socks5Atyp.IPV4, ('0.0.0.0', 0)),
-    ).pack()
+    AUTH_REP = bytes(Socks5AuthReply(
+        Socks5AuthMethod.NoAuthenticationRequired))
+    REP = bytes(
+        Socks5Reply(
+            Socks5Rep.Succeeded,
+            Socks5Addr(Socks5Atyp.IPV4, ('0.0.0.0', 0)),
+        ))
 
     ensure_next_layer = True
 

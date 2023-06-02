@@ -164,7 +164,7 @@ class VmessAddress:
     IPv4Struct = Struct('!HB4s')
     IPv6Struct = Struct('!HB16s')
 
-    def pack(self) -> bytes:
+    def __bytes__(self) -> bytes:
         addr, port = self.addr
         if self.t is VmessAddressType.DomainName:
             addr_bytes = addr.encode()
@@ -245,7 +245,7 @@ class VmessInstruction:
     def rkey(self) -> bytes:
         return md5(self.key).digest()
 
-    def pack(self) -> bytes:
+    def __bytes__(self) -> bytes:
         buf = self._PreStruct.pack(
             VmessVer.V1,
             self.iv,
@@ -256,7 +256,7 @@ class VmessInstruction:
             0,
             self.cmd,
         )
-        buf += self.a.pack() + random.randbytes(self.p)
+        buf += bytes(self.a) + random.randbytes(self.p)
         buf += fnv32a(buf)
         return buf
 
@@ -271,14 +271,14 @@ class VmessRequest:
     userid: VmessUserID
     instruction: VmessInstruction
 
-    def pack(self) -> bytes:
+    def __bytes__(self) -> bytes:
         ts = QStruct.pack(int(time.time()))
         certification = self.userid.certification(ts)
         key = self.userid.instruction_key
         iv = VmessUserID.instruction_iv(ts)
         cipher = Cipher(AES(key), CFB(iv))
         encryptor = cipher.encryptor()
-        instruction = self.instruction.pack()
+        instruction = bytes(self.instruction)
         instruction = encryptor.update(instruction)
         return certification + instruction
 
@@ -425,7 +425,7 @@ class VmessConnector(ProxyConnector):
 
         addr = VmessAddress(VmessAddressType.DomainName, self.addr)
         instruction = VmessInstruction(addr)
-        req = VmessRequest(self.userid, instruction).pack()
+        req = bytes(VmessRequest(self.userid, instruction))
 
         write_encryptor = _VmessMaskedGCMCryptor(
             instruction.key,

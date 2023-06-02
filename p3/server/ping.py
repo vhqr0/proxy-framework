@@ -44,7 +44,7 @@ class ProxyPing(Ping):
         req = HTTPRequest(method='GET', headers={'Host': self.url.host})
 
         async def test():
-            stream = await connector.connect(rest=req.pack())
+            stream = await connector.connect(rest=bytes(req))
             async with stream.cm():
                 await HTTPResponse.read_from_stream(stream)
 
