@@ -21,7 +21,6 @@ class ProxyAcceptor(Acceptor):
 
 @dataclass
 class ProxyRequest:
-    stream: Stream
     addr: tuple[str, int]
     rest: bytes
 
@@ -29,12 +28,15 @@ class ProxyRequest:
         return '<{} {} {}B>'.format(self.addr[0], self.addr[1], len(self.rest))
 
     @classmethod
-    async def from_acceptor(cls, acceptor: ProxyAcceptor) -> Self:
+    async def from_acceptor(
+        cls,
+        acceptor: ProxyAcceptor,
+    ) -> tuple[Stream, Self]:
         stream = await acceptor.accept()
         addr = acceptor.addr
         rest = stream.pop()
-        return cls(stream=stream, addr=addr, rest=rest)
+        return stream, cls(addr=addr, rest=rest)
 
-    async def ensure_rest(self):
+    async def ensure_rest(self, stream: Stream):
         if len(self.rest) == 0:
-            self.rest = await self.stream.readatleast(1)
+            self.rest = await stream.readatleast(1)

@@ -73,12 +73,12 @@ class Server(SelfSerializable, Loggable):
     async def serve(self, reader: asyncio.StreamReader,
                     writer: asyncio.StreamWriter):
         try:
-            req = await self.inbox.accept(
+            stream, req = await self.inbox.accept(
                 next_acceptor=TCPAcceptor(reader, writer))
         except Exception as e:
             self.logger.debug('except while accepting: %.60s', e)
             return
-        async with req.stream.cm() as s1:
+        async with stream.cm() as s1:
             try:
                 stream = await self.outdispatcher.connect(req)
             except Exception as e:

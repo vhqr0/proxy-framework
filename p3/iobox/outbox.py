@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional
 
 from p3.defaults import OUTBOX_URL
-from p3.stream import ProxyRequest, Stream
+from p3.stream import Connector, ProxyRequest, Stream
 from p3.utils.loggable import Loggable
 from p3.utils.nameable import Nameable
 from p3.utils.override import override
@@ -76,3 +76,18 @@ class Outbox(Nameable, Pingable, Weightable, DispatchedSerializable['Outbox'],
     @abstractmethod
     async def connect(self, req: ProxyRequest) -> Stream:
         raise NotImplementedError
+
+
+class OutboxWrappedConnecotr(Connector):
+    outbox: Outbox
+    addr: tuple[str, int]
+
+    def __init__(self, outbox: Outbox, addr: tuple[str, int], **kwargs):
+        super().__init__(**kwargs)
+        self.outbox = outbox
+        self.addr = addr
+
+    @override(Connector)
+    async def connect(self, rest: bytes = b'') -> Stream:
+        req = ProxyRequest(self.addr, rest)
+        return await self.outbox.connect(req)

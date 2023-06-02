@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional
 
 from p3.defaults import INBOX_URL
-from p3.stream import Acceptor, ProxyRequest
+from p3.stream import Acceptor, ProxyRequest, Stream
 from p3.utils.loggable import Loggable
 from p3.utils.override import override
 from p3.utils.serializable import DispatchedSerializable
@@ -51,12 +51,18 @@ class Inbox(DispatchedSerializable['Inbox'], Loggable, ABC):
         kwargs['url'] = obj.get('url') or ''
         return kwargs
 
-    async def accept(self, next_acceptor: Acceptor) -> ProxyRequest:
-        req = await self.accept_primitive(next_acceptor=next_acceptor)
+    async def accept(
+        self,
+        next_acceptor: Acceptor,
+    ) -> tuple[Stream, ProxyRequest]:
+        stream, req = await self.accept_primitive(next_acceptor=next_acceptor)
         if self.ensure_rest:
-            await req.ensure_rest()
-        return req
+            await req.ensure_rest(stream)
+        return stream, req
 
     @abstractmethod
-    async def accept_primitive(self, next_acceptor: Acceptor) -> ProxyRequest:
+    async def accept_primitive(
+        self,
+        next_acceptor: Acceptor,
+    ) -> tuple[Stream, ProxyRequest]:
         raise NotImplementedError

@@ -1,13 +1,10 @@
 import asyncio
 import socket
 from abc import ABC, abstractmethod
-from http import HTTPStatus
 
-from p3.common.null import NULLStream
 from p3.contrib.basic.http import HTTPRequest, HTTPResponse
 from p3.defaults import PING_TIMEOUT, PING_URL
-from p3.iobox import Outbox
-from p3.stream import ProxyRequest
+from p3.iobox import Outbox, OutboxWrappedConnecotr
 from p3.utils.override import override
 from p3.utils.url import URL
 
@@ -43,17 +40,13 @@ class ProxyPing(Ping):
 
     @override(Ping)
     def ping(self, outbox: Outbox):
-        hreq = HTTPRequest(method='GET', headers={'Host': self.url.host})
-        req = ProxyRequest(
-            stream=NULLStream(),
-            addr=self.url.addr,
-            rest=hreq.pack(),
-        )
+        connector = OutboxWrappedConnecotr(outbox=outbox, addr=self.url.addr)
+        req = HTTPRequest(method='GET', headers={'Host': self.url.host})
 
         async def test():
-            stream = await outbox.connect(req)
+            stream = await connector.connect(rest=req.pack())
             async with stream.cm():
-                resp = await HTTPResponse.read_from_stream(stream)
+                await HTTPResponse.read_from_stream(stream)
 
         async def main():
             await asyncio.wait_for(test(), timeout=self.timeout)

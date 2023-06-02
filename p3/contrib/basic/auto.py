@@ -27,7 +27,10 @@ class AutoInbox(Inbox):
     scheme = 'auto'
 
     @override(Inbox)
-    async def accept_primitive(self, next_acceptor: Acceptor) -> ProxyRequest:
+    async def accept_primitive(
+        self,
+        next_acceptor: Acceptor,
+    ) -> tuple[Stream, ProxyRequest]:
         acceptor = AutoAcceptor(next_layer=next_acceptor)
         return await ProxyRequest.from_acceptor(acceptor=acceptor)
 
