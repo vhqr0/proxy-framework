@@ -36,7 +36,3 @@ class ProxyRequest:
         addr = acceptor.addr
         rest = stream.pop()
         return stream, cls(addr=addr, rest=rest)
-
-    async def ensure_rest(self, stream: Stream):
-        if len(self.rest) == 0:
-            self.rest = await stream.readatleast(1)

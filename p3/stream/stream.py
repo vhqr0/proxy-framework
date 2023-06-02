@@ -126,9 +126,11 @@ class Stream(Layerable['Stream'], Loggable, ABC):
             buf = buf[:n]
         return buf
 
-    async def readuntil(self,
-                        separator: bytes = b'\n',
-                        strip: bool = False) -> bytes:
+    async def readuntil(
+        self,
+        separator: bytes = b'\n',
+        strip: bool = False,
+    ) -> bytes:
         buf, sp = b'', [b'']
         while len(sp) == 1:
             next_buf = await self.read()

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional
 
 from p3.defaults import INBOX_URL
-from p3.stream import Acceptor, ProxyRequest, Stream
+from p3.stream import Acceptor, ProxyRequest, Stream, ProxyAcceptor
 from p3.utils.loggable import Loggable
 from p3.utils.override import override
 from p3.utils.serializable import DispatchedSerializable
@@ -56,9 +56,10 @@ class Inbox(DispatchedSerializable['Inbox'], Loggable, ABC):
         next_acceptor: Acceptor,
     ) -> tuple[Stream, ProxyRequest]:
         stream, req = await self.accept_primitive(next_acceptor=next_acceptor)
-        if self.ensure_rest:
-            await req.ensure_rest(stream)
-        return stream, req
+        async with stream.cm(exc_only=True):
+            if self.ensure_rest and len(req.rest) == 0:
+                req.rest = await stream.readatleast(1)
+            return stream, req
 
     @abstractmethod
     async def accept_primitive(
@@ -66,3 +67,22 @@ class Inbox(DispatchedSerializable['Inbox'], Loggable, ABC):
         next_acceptor: Acceptor,
     ) -> tuple[Stream, ProxyRequest]:
         raise NotImplementedError
+
+
+class InboxWrappedAcceptor(ProxyAcceptor):
+    inbox: Inbox
+
+    ensure_next_layer = True
+
+    def __init__(self, inbox: Inbox, **kwargs):
+        super().__init__(**kwargs)
+        self.inbox = inbox
+
+    @override(ProxyAcceptor)
+    async def accept(self) -> Stream:
+        assert self.next_layer is not None
+        stream, req = await self.inbox.accept(next_acceptor=self.next_layer)
+        self.addr = req.addr
+        if len(req.rest) != 0:
+            stream.push(req.rest)
+        return stream
