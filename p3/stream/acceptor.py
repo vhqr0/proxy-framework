@@ -13,7 +13,7 @@ class Acceptor(Layerable['Acceptor'], Loggable, ABC):
         raise NotImplementedError
 
 
-class WrappedAcceptor(Acceptor):
+class StreamWrappedAcceptor(Acceptor):
     stream: Stream
 
     def __init__(self, stream: Stream, **kwargs):

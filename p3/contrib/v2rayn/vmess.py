@@ -24,12 +24,12 @@ from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import CFB
 from typing_extensions import Self
 
-from p3.utils.fnv import fnv32a
 from p3.contrib.v2rayn.net import V2rayNNetCtxOutbox
 from p3.iobox import Outbox
 from p3.stream import ProxyConnector, ProxyRequest, Stream
 from p3.stream.errors import BufferOverflowError, ProtocolError
 from p3.stream.structs import HStruct, QStruct
+from p3.utils.fnv import fnv32a
 from p3.utils.override import override
 
 HBBStruct = Struct('!HBB')

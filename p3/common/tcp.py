@@ -3,7 +3,7 @@ from typing import Any, Optional
 
 from p3.defaults import STREAM_TCP_BUFSIZE
 from p3.iobox import Outbox
-from p3.stream import Connector, ProxyRequest, Stream, WrappedAcceptor
+from p3.stream import Connector, ProxyRequest, Stream, StreamWrappedAcceptor
 from p3.utils.override import override
 
 
@@ -72,7 +72,7 @@ class TCPConnector(Connector):
             return stream
 
 
-class TCPAcceptor(WrappedAcceptor):
+class TCPAcceptor(StreamWrappedAcceptor):
 
     def __init__(
         self,
