@@ -24,7 +24,7 @@ from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import CFB
 from typing_extensions import Self
 
-from p3.common.fnv import fnv32a
+from p3.utils.fnv import fnv32a
 from p3.contrib.v2rayn.net import V2rayNNetCtxOutbox
 from p3.iobox import Outbox
 from p3.stream import ProxyConnector, ProxyRequest, Stream
