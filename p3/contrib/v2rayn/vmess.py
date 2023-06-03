@@ -9,7 +9,7 @@ import socket
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Flag, IntEnum, auto, unique
+from enum import auto
 from functools import cached_property
 from hashlib import md5
 from hmac import HMAC
@@ -27,10 +27,24 @@ from typing_extensions import Self
 from p3.contrib.v2rayn.net import V2rayNNetCtxOutbox
 from p3.iobox import Outbox
 from p3.stream import ProxyConnector, ProxyRequest, Stream
+from p3.stream.enums import BaseEnumMixin, BEnum, BFlag
 from p3.stream.errors import BufferOverflowError, ProtocolError
 from p3.stream.structs import HStruct, QStruct
 from p3.utils.fnv import fnv32a
 from p3.utils.override import override
+
+
+class VmessEnumMixin(BaseEnumMixin):
+    scheme = 'vmess'
+
+
+class VmessBEnum(VmessEnumMixin, BEnum):
+    pass
+
+
+class VmessBFlag(VmessEnumMixin, BFlag):  # type: ignore
+    pass
+
 
 HBBStruct = Struct('!HBB')
 BBBBStruct = Struct('!BBBB')
@@ -51,18 +65,11 @@ class VmessUserID(UUID):
         return md5(4 * ts).digest()
 
 
-@unique
-class VmessVer(IntEnum):
+class VmessVer(VmessBEnum):
     V1 = 1
 
-    def ensure(self, ver: int):
-        ver_ = self.__class__(ver)
-        if ver_ is not self:
-            raise ProtocolError('vmess', 'ver', ver_.name)
 
-
-@unique
-class VmessOption(Flag):
+class VmessOption(VmessBFlag):
     """
     | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
     |:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
@@ -93,8 +100,7 @@ class VmessOption(Flag):
     S, R, M, P, A = auto(), auto(), auto(), auto(), auto()
 
 
-@unique
-class VmessServerOption(Flag):
+class VmessServerOption(VmessBFlag):
     """
     * 0x01: The server is ready to reuse TCP connection
             (V2Ray 2.23+ is deprecated);
@@ -102,8 +108,7 @@ class VmessServerOption(Flag):
     R = auto()
 
 
-@unique
-class VmessEncryptionMethod(IntEnum):
+class VmessEncryptionMethod(VmessBEnum):
     """
     * 0x00: AES-128-CFB;
     * 0x01: No encryption;
@@ -125,8 +130,7 @@ class VmessEncryptionMethod(IntEnum):
     NoEncryption = 5
 
 
-@unique
-class VmessCommand(IntEnum):
+class VmessCommand(VmessBEnum):
     """
     * 0x01: TCP data;
     * 0x02: UDP data;
@@ -135,8 +139,7 @@ class VmessCommand(IntEnum):
     UDP = 2
 
 
-@unique
-class VmessServerCommand(IntEnum):
+class VmessServerCommand(VmessBEnum):
     """
     * 0x01: dynamic port instruction
     """
@@ -144,8 +147,7 @@ class VmessServerCommand(IntEnum):
     DynamicPort = 1
 
 
-@unique
-class VmessAddressType(IntEnum):
+class VmessAddressType(VmessBEnum):
     """
     * 0x01: IPv4
     * 0x02: domain name
@@ -177,7 +179,7 @@ class VmessAddress:
             addr_bytes = socket.inet_pton(socket.AF_INET6, addr)
             return self.IPv6Struct.pack(port, self.t, addr_bytes)
         else:
-            raise ProtocolError('vmess', 'addr', 'atyp', self.t.name)
+            self.t.raise_from_scheme()
 
 
 class VmessInstruction:
@@ -444,10 +446,8 @@ class VmessConnector(ProxyConnector):
                 raise ProtocolError('vmess', 'empty')
             resp = await VmessResponse.read_from_stream(
                 next_stream, instruction)
-            if resp.opt != VmessServerOption(0):
-                raise ProtocolError('vmess', 'sopt', str(resp.opt))
-            if resp.cmd is not VmessServerCommand.NoCommand:
-                raise ProtocolError('vmess', 'cmd', resp.cmd.name)
+            VmessServerOption(0).ensure(resp.opt)
+            VmessServerCommand.NoCommand.ensure(resp.cmd)
             if resp.content is not None:
                 raise ProtocolError('vmess', 'content')
             return VmessStream(

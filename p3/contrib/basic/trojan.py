@@ -109,8 +109,7 @@ class TrojanAcceptor(ProxyAcceptor):
             auth, req = header.auth, header.req
             if auth != self.auth:
                 raise ProtocolError('trojan', 'auth')
-            if req.cmd != Socks5Cmd.Connect:
-                raise ProtocolError('trojan', 'cmd', req.cmd.name)
+            Socks5Cmd.Connect.ensure(req.cmd)
             return stream
 
 

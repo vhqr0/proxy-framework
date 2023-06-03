@@ -8,7 +8,6 @@ Links:
 import base64
 import random
 from dataclasses import dataclass
-from enum import IntEnum, unique
 from hashlib import sha1
 from http import HTTPStatus
 from struct import Struct
@@ -16,19 +15,28 @@ from typing import Optional
 
 from typing_extensions import Self
 
-from p3.contrib.basic.http import HTTPRequest, HTTPResponse
+from p3.contrib.basic.http import HTTPRequest, HTTPResponse, HTTPStatusProxy
 from p3.defaults import STREAM_BUFSIZE, WS_OUTBOX_HOST, WS_OUTBOX_PATH
 from p3.stream import Acceptor, Connector, Stream
+from p3.stream.enums import BaseEnumMixin, BEnum
 from p3.stream.errors import BufferOverflowError, ProtocolError
 from p3.utils.override import override
+
+
+class WSEnumMixin(BaseEnumMixin):
+    scheme = 'ws'
+
+
+class WSBEnum(WSEnumMixin, BEnum):
+    pass
+
 
 BBStruct = Struct('!BB')
 BBHStruct = Struct('!BBH')
 BBQStruct = Struct('!BBQ')
 
 
-@unique
-class WSOpcode(IntEnum):
+class WSOpcode(WSBEnum):
     """
     *  %x0 denotes a continuation frame
     *  %x1 denotes a text frame
@@ -166,7 +174,7 @@ class WSStream(Stream):
             if frame.opcode in (WSOpcode.Text, WSOpcode.Binary,
                                 WSOpcode.ConnectionClose):
                 return frame
-            raise ProtocolError('ws', 'frame', 'opcode', frame.opcode.name)
+            frame.opcode.raise_from_scheme()
 
     async def ws_read_data(self) -> tuple[WSOpcode, bytes, bool]:
         frame = await self.ws_read_data_frame()
@@ -247,8 +255,7 @@ class WSConnector(Connector):
         async with next_stream.cm(exc_only=True):
             resp = await HTTPResponse.read_from_stream(next_stream)
             status = resp.statuscode
-            if status != HTTPStatus.SWITCHING_PROTOCOLS:
-                raise ProtocolError('ws', 'status', status.name)
+            HTTPStatusProxy.SWITCHING_PROTOCOLS.ensure(status)
             stream = WSStream(next_layer=next_stream)
             if len(rest) != 0:
                 await stream.writedrain(rest)

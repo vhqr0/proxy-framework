@@ -61,7 +61,7 @@ class V2rayNFetcher(Fetcher):
 
     @override(Fetcher)
     def fetch(self) -> list[Outbox]:
-        res = requests.get(self.url)
+        res = requests.get(self.url, timeout=3.0)
         if res.status_code != 200:
             res.raise_for_status()
         content = base64.decodebytes(res.content).decode()

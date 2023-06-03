@@ -1,7 +1,6 @@
-from enum import IntEnum, unique
+from enum import IntEnum
 
 
-@unique
 class ContentType(IntEnum):
     Invalid = 0
     ChangeCipherSpec = 20
@@ -11,7 +10,6 @@ class ContentType(IntEnum):
     Heartbeat = 24
 
 
-@unique
 class Version(IntEnum):
     SSL30 = 0x0300
     TLS10 = 0x0301
@@ -20,7 +18,6 @@ class Version(IntEnum):
     TLS13 = 0x0304
 
 
-@unique
 class HandshakeType(IntEnum):
     HelloRequest = 0
     ClientHello = 1
@@ -43,7 +40,6 @@ class HandshakeType(IntEnum):
     MessageHash = 254
 
 
-@unique
 class ExtensionType(IntEnum):
     ServerName = 0
     MaxFragmentLength = 1
@@ -94,18 +90,15 @@ class ExtensionType(IntEnum):
     EncryptedServerName = 0xffce
 
 
-@unique
 class ChangeCipherSpecType(IntEnum):
     ChangeCipherSpec = 1
 
 
-@unique
 class AlertLevel(IntEnum):
     Warn = 1
     Fatal = 2
 
 
-@unique
 class AlertDescription(IntEnum):
     CloseNotify = 0
     UnexpectedMessage = 10
@@ -142,7 +135,6 @@ class AlertDescription(IntEnum):
     NoApplicationProtocol = 120
 
 
-@unique
 class CipherSuite(IntEnum):
     AES_128_GCM_SHA256 = 0x1301
     AES_256_GCM_SHA384 = 0x1302
@@ -151,7 +143,6 @@ class CipherSuite(IntEnum):
     AES_128_CCM_8_SHA256 = 0x1305
 
 
-@unique
 class SignatureAlgorithm(IntEnum):
     RSA_PKCS1_SHA1 = 0x0201
     ECDSA_SHA1 = 0x0203
@@ -176,7 +167,6 @@ class SignatureAlgorithm(IntEnum):
     RSA_PSS_PSS_SHA512 = 0x080b
 
 
-@unique
 class NamedGroup(IntEnum):
     FFDHE2048 = 0x0100
     FFDHE3072 = 0x0101

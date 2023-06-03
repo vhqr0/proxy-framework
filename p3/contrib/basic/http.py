@@ -13,8 +13,17 @@ from typing_extensions import Self
 from p3.common.tcp import TCPConnector
 from p3.iobox import Outbox, TLSCtxOutbox
 from p3.stream import ProxyAcceptor, ProxyConnector, ProxyRequest, Stream
+from p3.stream.enums import BaseEnumMixin, BaseIntEnumProxy, HEnumMixin
 from p3.stream.errors import ProtocolError
 from p3.utils.override import override
+
+
+class HTTPEnumMixin(BaseEnumMixin):
+    scheme = 'http'
+
+
+class HTTPStatusProxy(HTTPEnumMixin, HEnumMixin, BaseIntEnumProxy):
+    enumType = HTTPStatus
 
 
 class HTTPHeaders:
@@ -201,12 +210,11 @@ class HTTPConnector(ProxyConnector):
         req_bytes = bytes(req)
         if len(rest) != 0:
             req_bytes += rest
-        stream = await self.next_layer.connect(rest=req)
+        stream = await self.next_layer.connect(rest=req_bytes)
         async with stream.cm(exc_only=True):
             resp = await HTTPResponse.read_from_stream(stream)
             status = resp.statuscode
-            if status is not HTTPStatus.OK:
-                raise ProtocolError('http', 'status', status.name)
+            HTTPStatusProxy.OK.ensure(status)
             return stream
 
 

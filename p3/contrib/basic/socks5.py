@@ -8,7 +8,6 @@ Links:
 import socket
 from collections.abc import Sequence
 from dataclasses import dataclass
-from enum import IntEnum, unique
 from struct import Struct
 from typing import Union
 
@@ -17,6 +16,7 @@ from typing_extensions import Self
 from p3.common.tcp import TCPConnector
 from p3.iobox import Outbox, TLSCtxOutbox
 from p3.stream import ProxyAcceptor, ProxyConnector, ProxyRequest, Stream
+from p3.stream.enums import BaseEnumMixin, BEnum
 from p3.stream.errors import ProtocolError
 from p3.stream.structs import HStruct
 from p3.utils.override import override
@@ -25,27 +25,24 @@ BBStruct = Struct('!BB')
 BBBStruct = Struct('!BBB')
 
 
-@unique
-class SocksVer(IntEnum):
+class Socks5EnumMixin(BaseEnumMixin):
+    scheme = 'socks5'
+
+
+class Socks5BEnum(Socks5EnumMixin, BEnum):
+    pass
+
+
+class Socks5Ver(Socks5BEnum):
     V4 = 4
     V5 = 5
 
-    def ensure(self, ver: int):
-        ver_ = self.__class__(ver)
-        if ver_ is not self:
-            raise ProtocolError('socks', 'ver', ver_.name)
+
+class Socks5Rsv(Socks5BEnum):
+    Zero = 0
 
 
-class Socks5Rsv:
-
-    @staticmethod
-    def ensure(rsv: int):
-        if rsv != 0:
-            raise ProtocolError('socks5', 'rsv')
-
-
-@unique
-class Socks5AuthMethod(IntEnum):
+class Socks5AuthMethod(Socks5BEnum):
     """
     o  X'00' NO AUTHENTICATION REQUIRED
     o  X'01' GSSAPI
@@ -60,8 +57,7 @@ class Socks5AuthMethod(IntEnum):
     NoAcceptableMethods = 0xff
 
 
-@unique
-class Socks5Cmd(IntEnum):
+class Socks5Cmd(Socks5BEnum):
     """
     o  CONNECT X'01'
     o  BIND X'02'
@@ -72,8 +68,7 @@ class Socks5Cmd(IntEnum):
     UDPAssociate = 3
 
 
-@unique
-class Socks5Atyp(IntEnum):
+class Socks5Atyp(Socks5BEnum):
     """
     o  IP V4 address: X'01'
     o  DOMAINNAME: X'03'
@@ -84,8 +79,7 @@ class Socks5Atyp(IntEnum):
     DOMAINNAME = 3
 
 
-@unique
-class Socks5Rep(IntEnum):
+class Socks5Rep(Socks5BEnum):
     """
     o  X'00' succeeded
     o  X'01' general SOCKS server failure
@@ -132,7 +126,7 @@ class Socks5Addr:
             addr_bytes = socket.inet_pton(socket.AF_INET6, addr)
             return self.IPv6Struct.pack(self.atyp, addr_bytes, port)
         else:
-            raise ProtocolError('socks5', 'addr', 'atyp', self.atyp.name)
+            self.atyp.raise_from_scheme()
 
     @classmethod
     async def read_from_stream(cls, stream: Stream) -> Self:
@@ -150,7 +144,7 @@ class Socks5Addr:
             addr_bytes, port = await stream.read_struct(cls.IPv6Struct)
             addr = socket.inet_ntop(socket.AF_INET6, addr_bytes)
         else:
-            raise ProtocolError('socks5', 'addr', 'atyp', atyp.name)
+            atyp.raise_from_scheme()
         return cls(atyp, (addr, port))
 
 
@@ -168,12 +162,12 @@ class Socks5AuthRequest:
     def __bytes__(self) -> bytes:
         nmethods = len(self.methods)
         methods = bytes(self.methods)
-        return BBStruct.pack(SocksVer.V5, nmethods) + methods
+        return BBStruct.pack(Socks5Ver.V5, nmethods) + methods
 
     @classmethod
     async def read_from_stream(cls, stream: Stream) -> Self:
         ver, nmethods = await stream.read_struct(BBStruct)
-        SocksVer.V5.ensure(ver)
+        Socks5Ver.V5.ensure(ver)
         if nmethods == 0:
             raise ProtocolError('socks5', 'auth', 'methods')
         methods = await stream.readexactly(nmethods)
@@ -192,12 +186,12 @@ class Socks5AuthReply:
     method: Socks5AuthMethod
 
     def __bytes__(self) -> bytes:
-        return BBStruct.pack(SocksVer.V5, self.method)
+        return BBStruct.pack(Socks5Ver.V5, self.method)
 
     @classmethod
     async def read_from_stream(cls, stream: Stream) -> Self:
         ver, _method = await stream.read_struct(BBStruct)
-        SocksVer.V5.ensure(ver)
+        Socks5Ver.V5.ensure(ver)
         method = Socks5AuthMethod(_method)
         return cls(method)
 
@@ -215,13 +209,13 @@ class Socks5Request:
     dst: Socks5Addr
 
     def __bytes__(self) -> bytes:
-        return BBBStruct.pack(SocksVer.V5, self.cmd, 0) + bytes(self.dst)
+        return BBBStruct.pack(Socks5Ver.V5, self.cmd, 0) + bytes(self.dst)
 
     @classmethod
     async def read_from_stream(cls, stream: Stream) -> Self:
         ver, _cmd, rsv = await stream.read_struct(BBBStruct)
-        SocksVer.V5.ensure(ver)
-        Socks5Rsv.ensure(rsv)
+        Socks5Ver.V5.ensure(ver)
+        Socks5Rsv.Zero.ensure(rsv)
         cmd = Socks5Cmd(_cmd)
         dst = await Socks5Addr.read_from_stream(stream)
         return cls(cmd, dst)
@@ -240,13 +234,13 @@ class Socks5Reply:
     bnd: Socks5Addr
 
     def __bytes__(self) -> bytes:
-        return BBBStruct.pack(SocksVer.V5, self.rep, 0) + bytes(self.bnd)
+        return BBBStruct.pack(Socks5Ver.V5, self.rep, 0) + bytes(self.bnd)
 
     @classmethod
     async def read_from_stream(cls, stream: Stream) -> Self:
         ver, _rep, rsv = await stream.read_struct(BBBStruct)
-        SocksVer.V5.ensure(ver)
-        Socks5Rsv.ensure(rsv)
+        Socks5Ver.V5.ensure(ver)
+        Socks5Rsv.Zero.ensure(rsv)
         rep = Socks5Rep(_rep)
         bnd = await Socks5Addr.read_from_stream(stream)
         return cls(rep, bnd)
@@ -264,17 +258,14 @@ class Socks5Connector(ProxyConnector):
         stream = await self.next_layer.connect(self.AUTH_REQ)
         async with stream.cm(exc_only=True):
             arep = await Socks5AuthReply.read_from_stream(stream)
-            if arep.method is not Socks5AuthMethod.NoAuthenticationRequired:
-                raise ProtocolError('socks5', 'auth', 'method',
-                                    arep.method.name)
+            Socks5AuthMethod.NoAuthenticationRequired.ensure(arep.method)
             dst = Socks5Addr(Socks5Atyp.DOMAINNAME, self.addr)
             req = bytes(Socks5Request(Socks5Cmd.Connect, dst))
             if len(rest) != 0:
                 req += rest
             await stream.writedrain(req)
             rep = await Socks5Reply.read_from_stream(stream)
-            if rep is not Socks5Rep.Succeeded:
-                raise ProtocolError('socks5', 'rep', rep.rep.name)
+            Socks5Rep.Succeeded.ensure(rep.rep)
             return stream
 
 
@@ -303,8 +294,7 @@ class Socks5Acceptor(ProxyAcceptor):
             raise ProtocolError('socks5', 'auth', 'methods')
         await stream.writedrain(self.AUTH_REP)
         req = await Socks5Request.read_from_stream(stream)
-        if req.cmd is not Socks5Cmd.Connect:
-            raise ProtocolError('socks5', 'cmd', req.cmd.name)
+        Socks5Cmd.Connect.ensure(req.cmd)
         self.addr = req.dst.addr
         await stream.writedrain(self.REP)
 
