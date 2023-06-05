@@ -6,11 +6,10 @@ Links:
   https://www.rfc-editor.org/rfc/rfc6455
 """
 import base64
-import random
 from dataclasses import dataclass
 from hashlib import sha1
 from http import HTTPStatus
-from struct import Struct
+from random import randbytes
 from typing import Optional
 
 from typing_extensions import Self
@@ -20,6 +19,7 @@ from p3.defaults import STREAM_BUFSIZE, WS_OUTBOX_HOST, WS_OUTBOX_PATH
 from p3.stream import Acceptor, Connector, Stream
 from p3.stream.enums import BaseEnumMixin, BEnum
 from p3.stream.errors import BufferOverflowError, ProtocolError
+from p3.stream.structs import BaseStruct, HStruct, QStruct
 from p3.utils.override import override
 
 
@@ -29,11 +29,6 @@ class WSEnumMixin(BaseEnumMixin):
 
 class WSBEnum(WSEnumMixin, BEnum):
     pass
-
-
-BBStruct = Struct('!BB')
-BBHStruct = Struct('!BBH')
-BBQStruct = Struct('!BBQ')
 
 
 class WSOpcode(WSBEnum):
@@ -83,6 +78,10 @@ class WSFrame:
     opcode: WSOpcode
     payload: bytes
 
+    BBStruct = BaseStruct('!BB')
+    BBHStruct = BaseStruct('!BBH')
+    BBQStruct = BaseStruct('!BBQ')
+
     def __bytes__(self) -> bytes:
         opcode = int(self.opcode)
         if self.fin:
@@ -90,11 +89,11 @@ class WSFrame:
         plen = len(self.payload)
         mask = 0x80 if self.mask else 0
         if plen <= 125:
-            header = BBStruct.pack(opcode, mask + plen)
+            header = self.BBStruct.pack(opcode, mask + plen)
         elif plen <= 65535:
-            header = BBHStruct.pack(opcode, mask + 126, plen)
+            header = self.BBHStruct.pack(opcode, mask + 126, plen)
         else:
-            header = BBQStruct.pack(opcode, mask + 127, plen)
+            header = self.BBQStruct.pack(opcode, mask + 127, plen)
         if self.mask:
             assert self.key is not None
             header += self.key
@@ -102,7 +101,7 @@ class WSFrame:
 
     def _mask_payload(self):
         if self.key is None:
-            self.key = random.randbytes(4)
+            self.key = randbytes(4)
         self.payload = bytes(c ^ self.key[i % 4]
                              for i, c in enumerate(self.payload))
 
@@ -120,15 +119,15 @@ class WSFrame:
 
     @classmethod
     async def read_from_stream(cls, stream: Stream) -> Self:
-        _opcode, plen = await stream.read_struct(BBStruct)
+        _opcode, plen = await cls.BBStruct.read_from_stream(stream)
         if _opcode & 0x70 != 0:
             raise ProtocolError('ws', 'frame', 'rsv')
         fin, opcode = bool(_opcode & 0x80), WSOpcode(_opcode & 0xf)
         mask, plen = bool(plen & 0x80), plen & 0x7f
         if plen == 126:
-            plen = await stream.readH()
+            plen, = await HStruct.read_from_stream(stream)
         elif plen == 127:
-            plen = await stream.readQ()
+            plen, = await QStruct.read_from_stream(stream)
         key: Optional[bytes] = None
         if mask:
             key = await stream.readexactly(4)
@@ -174,7 +173,7 @@ class WSStream(Stream):
             if frame.opcode in (WSOpcode.Text, WSOpcode.Binary,
                                 WSOpcode.ConnectionClose):
                 return frame
-            frame.opcode.raise_from_scheme()
+            frame.opcode.raise_protocol_error()
 
     async def ws_read_data(self) -> tuple[WSOpcode, bytes, bool]:
         frame = await self.ws_read_data_frame()
@@ -240,7 +239,7 @@ class WSConnector(Connector):
     @override(Connector)
     async def connect(self, rest: bytes = b'') -> Stream:
         assert self.next_layer is not None
-        key = base64.b64encode(random.randbytes(16)).decode()
+        key = base64.b64encode(randbytes(16)).decode()
         headers = {
             'Host': self.host,
             'Upgrade': 'websocket',

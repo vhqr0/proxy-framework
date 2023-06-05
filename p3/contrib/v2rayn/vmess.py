@@ -4,7 +4,6 @@ Links:
   https://www.v2fly.org/en_US/developer/protocols/vmess.html
   https://github.com/v2fly/v2fly-github-io/blob/master/docs/en_US/developer/protocols/vmess.md
 """
-import random
 import socket
 import time
 from abc import ABC, abstractmethod
@@ -13,7 +12,7 @@ from enum import auto
 from functools import cached_property
 from hashlib import md5
 from hmac import HMAC
-from struct import Struct
+from random import getrandbits, randbytes
 from typing import Any, Optional
 from uuid import UUID
 
@@ -29,7 +28,7 @@ from p3.iobox import Outbox
 from p3.stream import ProxyConnector, ProxyRequest, Stream
 from p3.stream.enums import BaseEnumMixin, BEnum, BFlag
 from p3.stream.errors import BufferOverflowError, ProtocolError
-from p3.stream.structs import HStruct, QStruct
+from p3.stream.structs import BaseStruct, BStruct, HStruct, QStruct
 from p3.utils.fnv import fnv32a
 from p3.utils.override import override
 
@@ -44,10 +43,6 @@ class VmessBEnum(VmessEnumMixin, BEnum):
 
 class VmessBFlag(VmessEnumMixin, BFlag):  # type: ignore
     pass
-
-
-HBBStruct = Struct('!HBB')
-BBBBStruct = Struct('!BBBB')
 
 
 class VmessUserID(UUID):
@@ -163,15 +158,16 @@ class VmessAddress:
     t: VmessAddressType
     addr: tuple[str, int]
 
-    IPv4Struct = Struct('!HB4s')
-    IPv6Struct = Struct('!HB16s')
+    HBStruct = BaseStruct('!HB')
+    IPv4Struct = BaseStruct('!HB4s')
+    IPv6Struct = BaseStruct('!HB16s')
 
     def __bytes__(self) -> bytes:
         addr, port = self.addr
         if self.t is VmessAddressType.DomainName:
             addr_bytes = addr.encode()
-            alen = len(addr_bytes)
-            return HBBStruct.pack(port, self.t, alen) + addr_bytes
+            return self.HBStruct.pack(port, self.t) + \
+                BStruct.pack_varlen(addr_bytes)
         elif self.t is VmessAddressType.IPv4:
             addr_bytes = socket.inet_pton(socket.AF_INET, addr)
             return self.IPv4Struct.pack(port, self.t, addr_bytes)
@@ -179,7 +175,7 @@ class VmessAddress:
             addr_bytes = socket.inet_pton(socket.AF_INET6, addr)
             return self.IPv6Struct.pack(port, self.t, addr_bytes)
         else:
-            self.t.raise_from_scheme()
+            self.t.raise_protocol_error()
 
 
 class VmessInstruction:
@@ -209,7 +205,7 @@ class VmessInstruction:
     cmd: VmessCommand
     a: VmessAddress
 
-    _PreStruct = Struct('!B16s16sBBBBB')
+    BBBBBStruct = BaseStruct('!BBBBB')
 
     def __init__(
         self,
@@ -223,13 +219,13 @@ class VmessInstruction:
         cmd: VmessCommand = VmessCommand.TCP,
     ):
         if iv is None:
-            iv = random.randbytes(16)
+            iv = randbytes(16)
         if key is None:
-            key = random.randbytes(16)
+            key = randbytes(16)
         if v is None:
-            v = random.getrandbits(8)
+            v = getrandbits(8)
         if p is None:
-            p = random.getrandbits(4)
+            p = getrandbits(4)
         self.iv = iv
         self.key = key
         self.v = v
@@ -248,17 +244,17 @@ class VmessInstruction:
         return md5(self.key).digest()
 
     def __bytes__(self) -> bytes:
-        buf = self._PreStruct.pack(
-            VmessVer.V1,
-            self.iv,
-            self.key,
+        buf = bytes(VmessVer.V1) + \
+            self.iv + \
+            self.key
+        buf += self.BBBBBStruct.pack(
             self.v,
             self.opt.value,
             (self.p << 4) + self.sec,
             0,
             self.cmd,
         )
-        buf += bytes(self.a) + random.randbytes(self.p)
+        buf += bytes(self.a) + randbytes(self.p)
         buf += fnv32a(buf)
         return buf
 
@@ -301,6 +297,8 @@ class VmessResponse:
     cmd: VmessServerCommand
     content: Optional[bytes]
 
+    BBBBStruct = BaseStruct('!BBBB')
+
     @classmethod
     async def read_from_stream(
         cls,
@@ -309,12 +307,12 @@ class VmessResponse:
     ) -> Self:
         cipher = Cipher(AES(instruction.rkey), CFB(instruction.riv))
         decryptor = cipher.decryptor()
-        buf = await stream.readexactly(BBBBStruct.size)
+        buf = await stream.readexactly(cls.BBBBStruct.size)
         buf = decryptor.update(buf)
-        v, _opt, _cmd, m = BBBBStruct.unpack(buf)
+        v, opt, cmd, m = cls.BBBBStruct.unpack_with_types(
+            buf, int, VmessServerOption, VmessServerCommand, int)
         if v != instruction.v:
             raise ProtocolError('vmess', 'auth')
-        opt, cmd = VmessServerOption(_opt), VmessServerCommand(_cmd)
         content: Optional[bytes] = None
         if m != 0:
             content = await stream.readexactly(m)
@@ -375,7 +373,7 @@ class _VmessMaskedGCMCryptor(VmessCryptor):
         mask, = HStruct.unpack(self.shake.read(2))
         iv = HStruct.pack(self.count) + self.iv
         self.count = (self.count + 1) & 0xffff
-        blen = await stream.readH()
+        blen, = await HStruct.read_from_stream(stream)
         blen = blen ^ mask
         if blen > self.VMESS_BUFSIZE:
             raise BufferOverflowError(blen)

@@ -35,11 +35,11 @@ class DispatchedSerializable(Generic[Scheme], Serializable):
     scheme_dict: dict[str, type[Scheme]]
 
     def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
         if not hasattr(cls, 'scheme_dict'):
             cls.scheme_dict = dict()
         if hasattr(cls, 'scheme'):
             cls.scheme_dict[cls.scheme] = cls
-        super().__init_subclass__(**kwargs)
 
     @override(Serializable)
     def to_dict(self) -> dict[str, Any]:

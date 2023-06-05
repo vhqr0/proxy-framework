@@ -23,7 +23,7 @@ class HTTPEnumMixin(BaseEnumMixin):
 
 
 class HTTPStatusProxy(HTTPEnumMixin, HEnumMixin, BaseIntEnumProxy):
-    enumType = HTTPStatus
+    enum_type = HTTPStatus
 
 
 class HTTPHeaders:

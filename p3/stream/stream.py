@@ -2,14 +2,12 @@ import asyncio
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from struct import Struct
-from typing import Any, Optional
+from typing import Optional
 
 from typing_extensions import Self
 
 from p3.defaults import STREAM_BUFSIZE
 from p3.stream.errors import BufferOverflowError, IncompleteReadError
-from p3.stream.structs import BStruct, HStruct, IStruct, QStruct
 from p3.utils.layerable import Layerable
 from p3.utils.loggable import Loggable
 
@@ -32,12 +30,6 @@ class Stream(Layerable['Stream'], Loggable, ABC):
             await asyncio.shield(self.ensure_closed())
         if exc is not None:
             raise exc
-
-    def blen(self) -> int:
-        return len(self.buf)
-
-    def bempty(self) -> bool:
-        return self.blen() == 0
 
     def push(self, buf: bytes):
         self.buf = buf + self.buf
@@ -145,54 +137,3 @@ class Stream(Layerable['Stream'], Loggable, ABC):
         if not strip:
             buf += separator
         return buf
-
-    async def read_struct(self, st: Struct) -> tuple[Any, ...]:
-        buf = await self.readexactly(st.size)
-        return st.unpack(buf)
-
-    async def readB(self) -> int:
-        i, = await self.read_struct(BStruct)
-        return i
-
-    async def readH(self) -> int:
-        i, = await self.read_struct(HStruct)
-        return i
-
-    async def readI(self) -> int:
-        i, = await self.read_struct(IStruct)
-        return i
-
-    async def readQ(self) -> int:
-        i, = await self.read_struct(QStruct)
-        return i
-
-    def popexactly(self, n: int) -> bytes:
-        if n > STREAM_BUFSIZE:
-            raise BufferOverflowError(n)
-        buf = self.pop()
-        if len(buf) < n:
-            raise IncompleteReadError(partial=buf, expected=n)
-        if len(buf) > n:
-            self.push(buf[n:])
-            buf = buf[:n]
-        return buf
-
-    def pop_struct(self, st: Struct) -> tuple[Any, ...]:
-        buf = self.popexactly(st.size)
-        return st.unpack(buf)
-
-    def popB(self) -> int:
-        i, = self.pop_struct(BStruct)
-        return i
-
-    def popH(self) -> int:
-        i, = self.pop_struct(HStruct)
-        return i
-
-    def popI(self) -> int:
-        i, = self.pop_struct(IStruct)
-        return i
-
-    def popQ(self) -> int:
-        i, = self.pop_struct(QStruct)
-        return i

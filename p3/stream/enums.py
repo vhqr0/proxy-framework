@@ -1,43 +1,45 @@
 from enum import Enum, IntEnum, IntFlag
-from struct import Struct
+from typing import Any, Union
 
 from typing_extensions import Self
 
+from p3.stream.buffer import Buffer
 from p3.stream.errors import ProtocolError
 from p3.stream.stream import Stream
-from p3.stream.structs import BStruct, HStruct, IStruct
+from p3.stream.structs import BaseStruct, BStruct, HStruct, IStruct
 
 
 class BaseEnumMixin:
     scheme: str
 
-    def raise_from_scheme(self):
+    def raise_protocol_error(self):
         raise ProtocolError(self.scheme, str(self))
 
-    def ensure(self, obj):
-        obj = self.__class__(obj)  # type: ignore
-        if obj.value != self.value:  # type: ignore
-            obj.raise_from_scheme()
+    def ensure(self, obj: Any):
+        assert isinstance(self, Enum)
+        obj = self.__class__(obj)
+        if obj.value != self.value:
+            obj.raise_protocol_error()
 
 
 class BaseEnumProxyMeta(type):
 
     def __getattr__(self, name):
-        return self(getattr(self.enumType, name))
+        return self(getattr(self.enum_type, name))
 
 
 class BaseEnumProxy(BaseEnumMixin, metaclass=BaseEnumProxyMeta):
-    enumType: type[Enum]
+    enum_type: type[Enum]
     enum: Enum
 
     def __init__(self, enum):
-        self.enum = self.enumType(enum)
+        self.enum = self.enum_type(enum)
 
     def __str__(self) -> str:
         return str(self.enum)
 
     def __getattr__(self, name: str):
-        return self.__class__(getattr(self.enumType, name))
+        return self.__class__(getattr(self.enum_type, name))
 
     @property
     def value(self):
@@ -45,21 +47,42 @@ class BaseEnumProxy(BaseEnumMixin, metaclass=BaseEnumProxyMeta):
 
 
 class BaseIntEnumMixin(BaseEnumMixin):
-    struct: Struct
+    struct: BaseStruct
 
     def __bytes__(self) -> bytes:
-        return self.struct.pack(int(self))  # type: ignore
+        assert isinstance(self, int)
+        return self.pack(self)
+
+    @classmethod
+    def pack(cls, i: int) -> bytes:
+        return cls.struct.pack(int(i))
 
     @classmethod
     async def read_from_stream(cls, stream: Stream) -> Self:
-        i, = await stream.read_struct(cls.struct)
-        return cls(i)  # type: ignore
+        i, = await cls.struct.read_from_stream(stream)
+        assert issubclass(cls, int)
+        return cls(i)
+
+    @classmethod
+    def pop_from_buffer(cls, buffer: Buffer) -> Self:
+        i, = cls.struct.pop_from_buffer(buffer)
+        assert issubclass(cls, int)
+        return cls(i)
+
+    @classmethod
+    def get(cls, i: int) -> Union[Self, int]:
+        assert issubclass(cls, int)
+        try:
+            return cls(i)
+        except ValueError:
+            return i
 
 
 class BaseIntEnumProxy(BaseIntEnumMixin, BaseEnumProxy):
 
     def __int__(self) -> int:
-        return int(self.enum)  # type: ignore
+        assert isinstance(self.enum, int)
+        return int(self.enum)
 
 
 class BEnumMixin(BaseIntEnumMixin):
@@ -86,6 +109,7 @@ class IEnum(IEnumMixin, IntEnum):
     pass
 
 
+# Bug of mypy, see: https://github.com/python/mypy/issues/9319
 class BFlag(BEnumMixin, IntFlag):  # type: ignore
     pass
 

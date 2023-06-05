@@ -15,7 +15,6 @@ from p3.iobox import TLSCtxInbox, TLSCtxOutbox
 from p3.stream import (Acceptor, ProxyAcceptor, ProxyConnector, ProxyRequest,
                        Stream)
 from p3.stream.errors import ProtocolError
-from p3.stream.structs import BStruct
 from p3.utils.override import override
 
 
@@ -32,12 +31,11 @@ class TrojanRequest:
     dst: Socks5Addr
 
     def __bytes__(self) -> bytes:
-        return BStruct.pack(self.cmd) + bytes(self.dst)
+        return bytes(self.cmd) + bytes(self.dst)
 
     @classmethod
     async def read_from_stream(cls, stream: Stream) -> Self:
-        _cmd = await stream.readB()
-        cmd = Socks5Cmd(_cmd)
+        cmd = await Socks5Cmd.read_from_stream(stream)
         dst = await Socks5Addr.read_from_stream(stream)
         return cls(cmd, dst)
 

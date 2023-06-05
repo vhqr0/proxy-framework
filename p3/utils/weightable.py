@@ -1,4 +1,4 @@
-import random
+from random import choices
 from typing import Any, Optional
 
 from typing_extensions import Self
@@ -56,16 +56,16 @@ class Weightable(Loggable):
 
     @override(DispatchedSerializable)
     def to_dict(self) -> dict[str, Any]:
-        # Virtual inherit from DispatchedSerializable.
-        obj = super().to_dict()  # type: ignore
+        assert isinstance(self, DispatchedSerializable)
+        obj = super().to_dict()
         obj['weight'] = self.weight.val
         return obj
 
     @classmethod
     @override(DispatchedSerializable)
     def kwargs_from_dict(cls, obj: dict[str, Any]) -> dict[str, Any]:
-        # Virtual inherit from DispatchedSerializable.
-        kwargs = super().kwargs_from_dict(obj)  # type: ignore
+        assert issubclass(cls, DispatchedSerializable)
+        kwargs = super().kwargs_from_dict(obj)
         weight = obj.get('weight')
         if weight is not None:
             kwargs['weight'] = Weight(weight)
@@ -74,4 +74,4 @@ class Weightable(Loggable):
     @classmethod
     def choices_by_weight(cls, population: list[Self], k: int) -> list[Self]:
         weights = [i.weight.val for i in population]
-        return random.choices(population, weights=weights, k=k)
+        return choices(population, weights=weights, k=k)

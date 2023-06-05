@@ -16,15 +16,15 @@ class Nameable(Loggable):
 
     @override(DispatchedSerializable)
     def to_dict(self) -> dict[str, Any]:
-        # Virtual inherit from DispatchedSerializable.
-        obj = super().to_dict()  # type: ignore
+        assert isinstance(self, DispatchedSerializable)
+        obj = super().to_dict()
         obj['name'] = self.name
         return obj
 
     @classmethod
     @override(DispatchedSerializable)
     def kwargs_from_dict(cls, obj: dict[str, Any]) -> dict[str, Any]:
-        # Virtual inherit from DispatchedSerializable.
-        kwargs = super().kwargs_from_dict(obj)  # type: ignore
+        assert issubclass(cls, DispatchedSerializable)
+        kwargs = super().kwargs_from_dict(obj)
         kwargs['name'] = obj.get('name') or cls.__name__
         return kwargs
